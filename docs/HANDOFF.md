@@ -25,6 +25,12 @@ Updated: 2026-11-20 (Asia/Jakarta)
   showed "Reference grade embedded in this effect", controls took the snapshot
   values (Look Neutral, ratio Original, trims 0), program view changed; after
   save + close + reopen the program view was identical (mean|d| 0.0, screen capture).
+- LIVE Media Encoder 24 PASS (job "export <dir>", same run, ame/frame000-297.png):
+  Premiere queued the sequence via app.encoder.encodeSequence + startBatch with the
+  AME "PNG Sequence (Match Source)" preset; AME loaded the .aex and rendered.
+  AME frame 179 (embedded-grade clip) == Premiere exportFramePNG reference (0.0);
+  differs from ungraded source by 9.14 (AE linked render: 9.13 -> cross-host
+  consistent). Clip-1 film frame vs Premiere film.png 1.32 (frame-varying grain).
 
 ## Previous checkpoint — panel "Apply to selected clips" (Claude, 2026-11-20)
 

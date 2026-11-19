@@ -12,14 +12,15 @@
  job.open('r');var root=job.read().replace(/^\s+|\s+$/g,'');job.close();job.remove();
  // "reopen <dir>" = phase 2. Phase 1 stops after save: closeDocument ends the script in PPro 24.
  // "apply <dir>" = phase 3: exercise host/bridge.jsx OdyHost.apply in that open scratch project.
- var reopen=root.indexOf('reopen ')===0,applying=root.indexOf('apply ')===0,probe=root.indexOf('probe ')===0;
- if(reopen)root=root.substring(7);if(applying||probe)root=root.substring(6);
+ // "export <dir>": queue the scratch sequence in Media Encoder (PNG sequence) + Premiere reference frame.
+ var reopen=root.indexOf('reopen ')===0,applying=root.indexOf('apply ')===0,probe=root.indexOf('probe ')===0,exporting=root.indexOf('export ')===0;
+ if(reopen||exporting)root=root.substring(7);if(applying||probe)root=root.substring(6);
  if(probe){  // read-only: report each clip's Grade link value in the active sequence
   var pr=new File(root+'/probe-'+new Date().getTime()+'.txt'),ps=app.project.activeSequence,pv=[];
   for(var pi=0;ps&&pi<ps.videoTracks[0].clips.numItems;pi++){var pcs=ps.videoTracks[0].clips[pi].components;
    for(var pj=0;pj<pcs.numItems;pj++)if(pcs[pj].displayName==='OdyGrade')for(var pk=0;pk<pcs[pj].properties.numItems;pk++)if(pcs[pj].properties[pk].displayName==='Grade link')pv.push(pi+':'+pcs[pj].properties[pk].getValue());}
   pr.open('w');pr.write(pv.join(' '));pr.close();return;}
- var dir=new Folder(root),report=new File(dir.fsName+(reopen?'/host-result.json':applying?'/apply-result.json':'/phase1.json')),log=[];
+ var dir=new Folder(root),report=new File(dir.fsName+(reopen?'/host-result.json':applying?'/apply-result.json':exporting?'/export-queued.json':'/phase1.json')),log=[];
  function quote(s){return '"'+String(s).replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\r/g,'\\r').replace(/\n/g,'\\n')+'"';}
  function write(ok,message){if(report.exists)return;if(!report.open('w'))return;report.encoding='UTF-8';report.write('{"ok":'+(ok?'true':'false')+',"version":'+quote(app.version)+',"message":'+quote(message)+',"log":'+quote(log.join('; '))+'}');report.close();}
  function same(a,b){return new File(a).fsName.toLowerCase()===new File(b).fsName.toLowerCase();}
@@ -35,6 +36,19 @@
  function bySeqName(n){for(var i=0;i<app.project.sequences.numSequences;i++)if(app.project.sequences[i].name===n)return app.project.sequences[i];return null;}
  try{
   if(!dir.exists)throw Error('Scratch folder missing');
+  if(exporting){
+   var xp=dir.fsName+'\\ppro-smoke.prproj';
+   if(app.projects.numProjects===0&&!app.openDocument(xp,true,true,true))throw Error('Cannot open scratch project');
+   if(!app.project||!same(app.project.path,xp))throw Error('Scratch project is not the active project. Refused; nothing modified.');
+   var xs=bySeqName('OdyGrade smoke');app.project.openSequence(xs.sequenceID);app.project.activeSequence=xs;
+   var tb=Number(xs.timebase),c2=xs.videoTracks[0].clips[xs.videoTracks[0].clips.numItems-1],fi=Math.round(Number(c2.start.ticks)/tb)+30;
+   xs.setPlayerPosition(String(fi*tb));app.enableQE();frame('ame-ref');log.push('frameIndex='+fi);
+   var out=new Folder(dir.fsName+'\\ame');if(out.exists)throw Error('Existing AME output preserved');out.create();
+   app.encoder.launchEncoder();
+   var id=app.encoder.encodeSequence(xs,out.fsName+'\\frame.png','C:\\Program Files\\Adobe\\Adobe Media Encoder 2024\\MediaIO\\systempresets\\3F3F3F3F_504E4720\\PNG Sequence (Match Source).epr',app.encoder.ENCODE_ENTIRE,1);
+   if(!id)throw Error('encodeSequence returned no job');app.encoder.startBatch();log.push('job='+id);
+   write(true,'Queued in Media Encoder; Premiere reference frame exported.');return;
+  }
   if(!applying&&app.projects.numProjects>0)throw Error('A project is already open ('+app.projects[0].path+'). Refused; nothing modified.');
   var path=dir.fsName+'\\ppro-smoke.prproj';
   if(reopen){

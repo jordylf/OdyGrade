@@ -4,6 +4,7 @@ Latest (Claude, 2026-11-20): panel "Apply to selected clips" live-verified in Pr
 and AE. dev.6 auto-embeds the reference grade in AE (no click, survives save);
 Premiere still needs one "Load native grade..." click (no scripted param callback);
 that click is live-verified, including save/reopen persistence.
+Media Encoder export from Premiere renders the effect identically (live-verified).
 Also 2026-11-20: same .aex PASSES a live Premiere 24.6.1 smoke
 (apply, render, .prproj save+reopen restores controls, identical pixels).
 Premiere popup params are 0-based in scripting (AE 1-based). See HANDOFF.
