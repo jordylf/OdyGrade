@@ -126,6 +126,7 @@ PF_Err render(PF_InData* in_data,PF_ParamDef* p[],PF_LayerDef* output){
  finishing.film={value(p,Grain)/100,value(p,Bloom)/100,value(p,Halation)/100,value(p,Vignette)/100,value(p,Bleach)/100,Ratios[ratio]};
  odygrade::validate(base);odygrade::validate(finishing);
  PremierePixels pixels(in_data);const auto inputFormat=pixels.format(&input),outputFormat=pixels.format(output);
+ trace("render fmt in=%d out=%d",static_cast<int>(inputFormat),static_cast<int>(outputFormat));  // 1 BGRA8, 8 BGRA32F, 2 ARGB8, 6 ARGB16AE
  const auto alpha=p[Alpha]->u.pd.value==1?odygrade::AlphaMode::Premultiplied:odygrade::AlphaMode::Straight;
  if(p[Alpha]->u.pd.value<1||p[Alpha]->u.pd.value>2)throw std::invalid_argument("Invalid alpha mode");
  std::vector<float> intermediate(static_cast<std::size_t>(input.width)*input.height*4);

@@ -5,6 +5,7 @@ and AE. dev.6 auto-embeds the reference grade in AE (no click, survives save);
 Premiere still needs one "Load native grade..." click (no scripted param callback);
 that click is live-verified, including save/reopen persistence.
 Media Encoder export from Premiere renders the effect identically (live-verified).
+AE 32 bpc works (effect runs at 16 bpc, HDR >1.0 clipped); Premiere 32f unproven.
 Also 2026-11-20: same .aex PASSES a live Premiere 24.6.1 smoke
 (apply, render, .prproj save+reopen restores controls, identical pixels).
 Premiere popup params are 0-based in scripting (AE 1-based). See HANDOFF.

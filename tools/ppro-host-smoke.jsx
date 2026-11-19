@@ -13,14 +13,15 @@
  // "reopen <dir>" = phase 2. Phase 1 stops after save: closeDocument ends the script in PPro 24.
  // "apply <dir>" = phase 3: exercise host/bridge.jsx OdyHost.apply in that open scratch project.
  // "export <dir>": queue the scratch sequence in Media Encoder (PNG sequence) + Premiere reference frame.
- var reopen=root.indexOf('reopen ')===0,applying=root.indexOf('apply ')===0,probe=root.indexOf('probe ')===0,exporting=root.indexOf('export ')===0;
- if(reopen||exporting)root=root.substring(7);if(applying||probe)root=root.substring(6);
+ // "depth <dir>": render clip-2 frame with sequence Maximum Bit Depth off, then on (32f path).
+ var reopen=root.indexOf('reopen ')===0,applying=root.indexOf('apply ')===0,probe=root.indexOf('probe ')===0,exporting=root.indexOf('export ')===0,depth=root.indexOf('depth ')===0;
+ if(reopen||exporting)root=root.substring(7);if(applying||probe||depth)root=root.substring(6);
  if(probe){  // read-only: report each clip's Grade link value in the active sequence
   var pr=new File(root+'/probe-'+new Date().getTime()+'.txt'),ps=app.project.activeSequence,pv=[];
   for(var pi=0;ps&&pi<ps.videoTracks[0].clips.numItems;pi++){var pcs=ps.videoTracks[0].clips[pi].components;
    for(var pj=0;pj<pcs.numItems;pj++)if(pcs[pj].displayName==='OdyGrade')for(var pk=0;pk<pcs[pj].properties.numItems;pk++)if(pcs[pj].properties[pk].displayName==='Grade link')pv.push(pi+':'+pcs[pj].properties[pk].getValue());}
   pr.open('w');pr.write(pv.join(' '));pr.close();return;}
- var dir=new Folder(root),report=new File(dir.fsName+(reopen?'/host-result.json':applying?'/apply-result.json':exporting?'/export-queued.json':'/phase1.json')),log=[];
+ var dir=new Folder(root),report=new File(dir.fsName+(reopen?'/host-result.json':applying?'/apply-result.json':exporting?'/export-queued.json':depth?'/depth-result.json':'/phase1.json')),log=[];
  function quote(s){return '"'+String(s).replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\r/g,'\\r').replace(/\n/g,'\\n')+'"';}
  function write(ok,message){if(report.exists)return;if(!report.open('w'))return;report.encoding='UTF-8';report.write('{"ok":'+(ok?'true':'false')+',"version":'+quote(app.version)+',"message":'+quote(message)+',"log":'+quote(log.join('; '))+'}');report.close();}
  function same(a,b){return new File(a).fsName.toLowerCase()===new File(b).fsName.toLowerCase();}
@@ -36,6 +37,18 @@
  function bySeqName(n){for(var i=0;i<app.project.sequences.numSequences;i++)if(app.project.sequences[i].name===n)return app.project.sequences[i];return null;}
  try{
   if(!dir.exists)throw Error('Scratch folder missing');
+  if(depth){
+   var dp=dir.fsName+'\\ppro-smoke.prproj';
+   if(app.projects.numProjects===0&&!app.openDocument(dp,true,true,true))throw Error('Cannot open scratch project');
+   if(!app.project||!same(app.project.path,dp))throw Error('Scratch project is not the active project. Refused; nothing modified.');
+   var ds=bySeqName('OdyGrade smoke');app.project.openSequence(ds.sequenceID);app.project.activeSequence=ds;app.enableQE();
+   var dtb=Number(ds.timebase),dc=ds.videoTracks[0].clips[ds.videoTracks[0].clips.numItems-1];
+   ds.setPlayerPosition(String((Math.round(Number(dc.start.ticks)/dtb)+30)*dtb));
+   var st=ds.getSettings();st.maximumBitDepth=false;ds.setSettings(st);frame('depth-off');
+   st=ds.getSettings();st.maximumBitDepth=true;st.maximumRenderQuality=true;ds.setSettings(st);
+   log.push('maxDepth='+ds.getSettings().maximumBitDepth);frame('depth-max');
+   write(true,'Rendered clip-2 frame with Maximum Bit Depth off and on.');return;
+  }
   if(exporting){
    var xp=dir.fsName+'\\ppro-smoke.prproj';
    if(app.projects.numProjects===0&&!app.openDocument(xp,true,true,true))throw Error('Cannot open scratch project');

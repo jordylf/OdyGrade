@@ -2,7 +2,22 @@
 Updated: 2026-11-20 (Asia/Jakarta)
 
 
-## Latest checkpoint — auto-embed via "Grade link" (Claude, 2026-11-20)
+## Latest checkpoint — AE 32 bpc (Claude, 2026-11-20)
+
+- LIVE AE 24.6.2, 32 bpc, Render Queue -> TIFF (runs/ae-link-20261120-012224/rq-*.tif):
+  effect renders; 32 bpc vs 16 bpc output 0.33 mean|d|; grade delta 9.14 at both.
+  The effect is not float-aware (no SmartFX), so AE runs it at 16 bpc inside a
+  32 bpc project: values > 1.0 are clipped (SDR core by design). SmartFX/float is
+  only needed for linear/HDR workflows; not started.
+- comp.saveFrameToPng is unusable at 32 bpc (near-black even with no effect); use
+  the Render Queue for 32 bpc captures.
+- Premiere 32f (BGRA_4444_32f) path still unproven; user chose to stop at AE.
+  Prepared, NOT run: adapter render trace "render fmt in/out" (opt-in trace file;
+  1 BGRA8, 8 BGRA32F) and ppro-host-smoke.jsx job "depth <dir>" (Maximum Bit Depth
+  off/on). OdyGrade-native-dev holds the dev.7-fmttrace build (sha e33a684e...),
+  NOT installed; installed is still dev.6-link (sha 3aab7ae0...).
+
+## Previous checkpoint — auto-embed via "Grade link" (Claude, 2026-11-20)
 
 - .aex 0.4.0-dev.6-link installed (sha 3aab7ae0...). New last param Link
   ("Grade link", SUPERVISE slider -30000..30000). Param count 20 -> 21: dev.5 test
