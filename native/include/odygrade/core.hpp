@@ -1,0 +1,63 @@
+#pragma once
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <string>
+
+namespace odygrade {
+using Color = std::array<double, 3>;
+struct Zone { double a{}, b{}, sa{}, sb{}; };
+struct Distribution {
+    std::array<double, 9> quantiles{};
+    std::array<Zone, 3> zones{};
+};
+struct Correction { double exposure{}, temperature{}, tint{}; };
+struct Model {
+    bool enabled{};
+    Distribution source{}, reference{};
+    Correction correction{};
+    std::string input_profile{"srgb"};
+};
+struct Settings {
+    double strength{1}, exposure{}, temperature{}, tint{}, contrast{1}, saturation{1};
+    double preserve_skin{0.65}, fade{}, shoulder{};
+    std::string look{"neutral"};
+    std::string input_profile{"srgb"};
+};
+struct Film {
+    double grain{}, bloom{}, halation{}, vignette{}, bleach{}, ratio{};
+};
+struct Recipe { Model model{}; Settings settings{}; Film film{}; };
+
+enum class PixelFormat { RGBA8, BGRA8, ARGB8, RGBA16, ARGB16, RGBA16AE, ARGB16AE,
+                         RGBA32F, BGRA32F, ARGB32F };
+enum class AlphaMode { Straight, Premultiplied };
+struct ConstFrame {
+    const void* data{};
+    int width{}, height{};
+    // Data points to the logical first row, even when row_bytes is negative.
+    std::ptrdiff_t row_bytes{};
+    PixelFormat format{PixelFormat::RGBA8};
+    AlphaMode alpha{AlphaMode::Straight};
+};
+struct Frame {
+    void* data{};
+    int width{}, height{};
+    std::ptrdiff_t row_bytes{};
+    PixelFormat format{PixelFormat::RGBA8};
+    AlphaMode alpha{AlphaMode::Straight};
+};
+
+std::size_t pixel_bytes(PixelFormat format);
+PixelFormat parse_pixel_format(const std::string& name);
+void validate(const Recipe& recipe);
+Color transform(Color color, const Recipe& recipe);
+// Full-frame rendering only. Spatial effects require the whole frame; tiled host
+// adapters must supply full-frame pixels rather than independently render tiles.
+// No host state, filesystem access, static mutable caches or per-frame refitting.
+void render(const ConstFrame& input, const Frame& output, const Recipe& recipe,
+            std::uint64_t frame_index = 0, double pixel_aspect = 1);
+// Bounded internal interchange generated from the validated JSON recipe by JS.
+// This is not an Adobe effect parameter block or an Adobe plugin binary.
+Recipe read_recipe(const std::string& text);
+} // namespace odygrade

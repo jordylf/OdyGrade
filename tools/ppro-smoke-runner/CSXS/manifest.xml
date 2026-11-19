@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Dev-only invisible runner: evaluates tools/ppro-host-smoke.jsx once Premiere starts.
+     The JSX is inert without a job file. Installed/removed by tools/run-ppro-smoke.ps1. -->
+<ExtensionManifest Version="7.0" ExtensionBundleId="com.odyworks.odygrade.smoke" ExtensionBundleVersion="0.1.0" ExtensionBundleName="OdyGrade Smoke">
+<ExtensionList><Extension Id="com.odyworks.odygrade.smoke.runner" Version="0.1.0"/></ExtensionList>
+<ExecutionEnvironment><HostList><Host Name="PPRO" Version="[24.0,24.9]"/></HostList><LocaleList><Locale Code="All"/></LocaleList><RequiredRuntimeList><RequiredRuntime Name="CSXS" Version="11.0"/></RequiredRuntimeList></ExecutionEnvironment>
+<DispatchInfoList><Extension Id="com.odyworks.odygrade.smoke.runner"><DispatchInfo><Resources><MainPath>./index.html</MainPath></Resources>
+<Lifecycle><AutoVisible>false</AutoVisible><StartOn><Event>com.adobe.csxs.events.ApplicationActivate</Event><Event>applicationActivate</Event></StartOn></Lifecycle>
+<UI><Type>Custom</Type><Geometry><Size><Width>1</Width><Height>1</Height></Size></Geometry></UI></DispatchInfo></Extension></DispatchInfoList>
+</ExtensionManifest>

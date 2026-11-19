@@ -1,0 +1,8 @@
+node_modules/
+release/
+.test-output/
+*.log
+.native-build/
+.playwright-mcp/
+
+.adobe-build/
