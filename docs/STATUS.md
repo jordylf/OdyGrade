@@ -6,6 +6,7 @@ Premiere still needs one "Load native grade..." click (no scripted param callbac
 that click is live-verified, including save/reopen persistence.
 Media Encoder export from Premiere renders the effect identically (live-verified).
 AE 32 bpc works (effect runs at 16 bpc, HDR >1.0 clipped); Premiere 32f unproven.
+AE undo/redo of apply verified (one step, embedded grade restored); Premiere undo untested.
 Also 2026-11-20: same .aex PASSES a live Premiere 24.6.1 smoke
 (apply, render, .prproj save+reopen restores controls, identical pixels).
 Premiere popup params are 0-based in scripting (AE 1-based). See HANDOFF.
@@ -51,7 +52,7 @@ Original implementation and look library; no proprietary Pocket binaries/assets 
 ## Not complete: do not claim Pocket parity or native timeline integration
 - Live host panel load, capture, and export must be tested in Adobe.
 - Timeline apply sets effect controls automatically; the reference snapshot embeds
-  automatically in AE only; Premiere needs a "Load native grade..." click. Undo not verified.
+  automatically in AE only; Premiere needs a "Load native grade..." click. Premiere undo not verified.
 - Adobe-native real-time 16/32-bit timeline rendering and host keyframes. The portable core
   handles high-precision buffers, but is not an Adobe effect and is not performance-qualified.
 - Other camera/LOG encodings, automatic metadata/range detection, ICC, complete

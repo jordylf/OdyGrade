@@ -2,7 +2,20 @@
 Updated: 2026-11-20 (Asia/Jakarta)
 
 
-## Latest checkpoint — AE 32 bpc (Claude, 2026-11-20)
+## Latest checkpoint — AE undo/redo of panel apply (Claude, 2026-11-20)
+
+- LIVE AE 24.6.2 PASS (runs/ae-undo-20261120-025101): one Undo after apply removes
+  the whole effect (0 effects, comp/layer intact); Redo (command 2035) restores it
+  in the embedded state (Grade link -13415); redone render == earlier embedded
+  render (0.0), 9.13 from source.
+- Note: Kinetic wraps each script in its own undo group, so this proves undo of the
+  whole apply step, not of OdyHost.apply's inner "Apply OdyGrade" group alone
+  (panel calls via CEP evalScript have no outer group, so that group is the step).
+- Note: Grade link embed overwrites controls with the snapshot's values (here
+  Grain 35 -> 0); in real use panel params come from the same recipe.
+- Premiere undo not tested (no scriptable undo; would need UI).
+
+## Previous checkpoint — AE 32 bpc (Claude, 2026-11-20)
 
 - LIVE AE 24.6.2, 32 bpc, Render Queue -> TIFF (runs/ae-link-20261120-012224/rq-*.tif):
   effect renders; 32 bpc vs 16 bpc output 0.33 mean|d|; grade delta 9.14 at both.
