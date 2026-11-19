@@ -20,6 +20,11 @@ Updated: 2026-11-20 (Asia/Jakarta)
   back to the manual "Load native grade..." instruction there. Open idea if needed:
   Premiere-specific path (e.g. sequence data), not attempted.
 - ppro-host-smoke.jsx gained job modes "apply <dir>" and "probe <dir>" (read-only).
+- LIVE Premiere manual fallback PASS (UI-driven, runs/ppro-20261120-011840): the
+  "Load native grade..." button opens the .odyn dialog; loading last-applied.odyn
+  showed "Reference grade embedded in this effect", controls took the snapshot
+  values (Look Neutral, ratio Original, trims 0), program view changed; after
+  save + close + reopen the program view was identical (mean|d| 0.0, screen capture).
 
 ## Previous checkpoint — panel "Apply to selected clips" (Claude, 2026-11-20)
 
