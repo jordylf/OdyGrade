@@ -26,6 +26,11 @@
   var pr=new File(root+'/probe-'+new Date().getTime()+'.txt'),ps=app.project.activeSequence,pv=[];
   for(var pi=0;ps&&pi<ps.videoTracks[0].clips.numItems;pi++){var pcs=ps.videoTracks[0].clips[pi].components;
    for(var pj=0;pj<pcs.numItems;pj++)if(pcs[pj].displayName==='OdyGrade')for(var pk=0;pk<pcs[pj].properties.numItems;pk++)if(pcs[pj].properties[pk].displayName==='Grade link')pv.push(pi+':'+pcs[pj].properties[pk].getValue());}
+  // API reflection (read-only): what can remove/disable an effect from script?
+  var qi=null;try{app.enableQE();var qt=qe.project.getActiveSequence().getVideoTrackAt(0);for(var qk=0;qk<qt.numItems;qk++)if(qt.getItemAt(qk).type!=='Empty'){qi=qt.getItemAt(qk);break;}}catch(qx){pv.push('qe err '+qx);}
+  function names(o){var r=[];try{var m=o.reflect.methods;for(var mi=0;mi<m.length;mi++)r.push(m[mi].name);}catch(rx){r.push('err '+rx);}return r.join(',');}
+  if(ps&&ps.videoTracks[0].clips.numItems){var pc0=ps.videoTracks[0].clips[0];pv.push('\nTrackItem: '+names(pc0));pv.push('\nComponentCollection: '+names(pc0.components));if(pc0.components.numItems)pv.push('\nComponent: '+names(pc0.components[pc0.components.numItems-1]));}
+  if(qi){pv.push('\nQE item: '+names(qi));try{pv.push('\nQE numComponents='+qi.numComponents);var qc=qi.getComponentAt(qi.numComponents-1);pv.push('\nQE component: '+names(qc)+' name='+qc.name);}catch(cx){pv.push('\nqe comp err '+cx);}}
   pr.open('w');pr.write(pv.join(' '));pr.close();return;}
  // Table, not a nested ternary: PPro 24 ExtendScript picked the wrong branch of the long chain.
  var names=[[reopen,'host-result'],[applying,'apply-result'],[exporting,'export-queued'],[real,'real-result'],[rframes,'rframes-result'],[depth,'depth-result'],[reapply,'reapply-result'],[snap,'snap-'+sname]],rn='phase1';
@@ -75,7 +80,8 @@
     if(!xe)throw Error('Clip has no OdyGrade to re-apply onto');
     $.evalFile(new File($.fileName).parent.parent.fsName+'/host/bridge.jsx');xc.setSelected(true,true);
     var xg=new File(dir.fsName+'/grade.odyn');xg.open('r');var xs=xg.read();xg.close();
-    var xr=eval('('+OdyHost.apply(encodeURIComponent(xs),[['Look',1,1],['Grain',35,0]])+')');
+    var amber=prop(xe,'Look').getValue()===1;  // toggle so before/after values always differ
+    var xr=eval('('+OdyHost.apply(encodeURIComponent(xs),amber?[['Look',2,1],['Grain',0,0]]:[['Look',1,1],['Grain',35,0]])+')');
     log.push('apply='+xr.ok+' count='+xr.count+' err='+xr.error+'; after '+vals());if(!xr.ok)throw Error(xr.error);sname='reapply-1';
    }
    at(xq,1.5);frame(sname);write(true,reapply?'Re-applied onto existing OdyGrade; frame exported.':'Snapshot exported.');return;

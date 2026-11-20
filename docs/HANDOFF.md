@@ -33,8 +33,14 @@ Updated: 2026-11-21 (Asia/Jakarta)
   token) CONFIRMS the risk: History gains no step. One Undo then removes the whole
   effect (frame == source, 0.00), i.e. the FIRST grade is lost too; Redo brings back the
   re-applied values (look=1 grain=35, frame == reapply, 0.00), never the first grade.
-  Re-apply in Premiere is therefore not undoable on its own. Fix not chosen yet (options:
-  add a fresh instance per apply, or warn in the panel). Jobs "reapply"/"snap" added.
+  Jobs "reapply"/"snap" added.
+- FIX (user chose "fresh instance"): Premiere branch of OdyHost.apply now removes any
+  existing OdyGrade via QE component.remove() and adds a new one. LIVE: History shows
+  "Remove Effect" + "Apply Effect"; two Undos restore the previous grade exactly
+  (Amber/Grain 35/token 20270, frame 0.00), two Redos the new one (Nocturne, 0.00).
+  Costs: 2 undo steps per re-apply; the new instance goes to the END of the clip's
+  effect stack (order changes if other effects followed OdyGrade). AE unchanged.
+  Probe job now dumps reflect.methods of TrackItem / QE item / QE component.
 
 ## Previous checkpoint — first real-footage grade (Claude, 2026-11-20)
 

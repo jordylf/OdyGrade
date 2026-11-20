@@ -9,8 +9,8 @@ and AE. dev.6 auto-embeds the reference grade in AE (no click, survives save);
 the Premiere manual Load click is live-verified, including save/reopen persistence.
 Media Encoder export from Premiere renders the effect identically (live-verified).
 AE 32 bpc works (effect runs at 16 bpc, HDR >1.0 clipped); Premiere 32f unproven.
-AE undo/redo of apply verified (one step, embedded grade restored); Premiere undo/redo of a first apply verified (one step); a RE-apply onto an existing
-OdyGrade is not undoable on its own (Undo removes the whole effect) — open issue.
+AE undo/redo of apply verified (one step, embedded grade restored); Premiere undo/redo verified for first apply (1 step) and re-apply (replaces the
+instance: 2 steps, previous grade restored exactly; new instance moves to stack end).
 Real iPhone clip graded from a film still: AE live render == offline core (max 1/255);
 Premiere (after Load click) mean 0.73 from offline, outliers only on chroma edges.
 Also 2026-11-20: same .aex PASSES a live Premiere 24.6.1 smoke
@@ -58,7 +58,7 @@ Original implementation and look library; no proprietary Pocket binaries/assets 
 ## Not complete: do not claim Pocket parity or native timeline integration
 - Live host panel load, capture, and export must be tested in Adobe.
 - Timeline apply sets effect controls automatically; the reference snapshot embeds
-  in AE; Premiere reads it from the local pending store until "Load native grade..." embeds it. Premiere re-apply is not undoable on its own (see HANDOFF).
+  in AE; Premiere reads it from the local pending store until "Load native grade..." embeds it. Premiere re-apply replaces the effect instance so it stays undoable (see HANDOFF).
 - Adobe-native real-time 16/32-bit timeline rendering and host keyframes. The portable core
   handles high-precision buffers, but is not an Adobe effect and is not performance-qualified.
 - Other camera/LOG encodings, automatic metadata/range detection, ICC, complete

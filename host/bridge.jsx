@@ -60,8 +60,11 @@ var OdyHost = {
         if(!effect)throw Error("OdyGrade effect is not installed.");
         for(var t=0;t<seq.videoTracks.numTracks;t++){var track=seq.videoTracks[t];
           for(var k=0;k<track.clips.numItems;k++){var clip=track.clips[k];if(!clip.isSelected())continue;
-            fx=this.component(clip);
-            if(!fx){this.qeItem(q.getVideoTrackAt(t),k).addVideoEffect(effect);fx=this.component(clip);}
+            // Premiere History records Remove/Apply Effect but not scripted setValue, so replace
+            // an existing OdyGrade instead of editing it: every apply then undoes on its own.
+            var item=this.qeItem(q.getVideoTrackAt(t),k);
+            for(var c=item.numComponents-1;c>=0;c--)if(item.getComponentAt(c).name==="OdyGrade")item.getComponentAt(c).remove();
+            this.qeItem(q.getVideoTrackAt(t),k).addVideoEffect(effect);fx=this.component(clip);
             if(!fx)throw Error("Could not add OdyGrade to "+clip.name);
             for(j=0;j<params.length;j++)this.param(fx,params[j][0]).setValue(params[j][1],true);
             var link=this.param(fx,"Grade link");link.setValue(token,true);if(link.getValue()===-token)linked++;n++;}}
