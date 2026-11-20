@@ -12,9 +12,14 @@ Updated: 2026-11-20 (Asia/Jakarta)
   no exposure/WB correction. still-native renders: mean RGB 116/108/99 -> 80/84/70
   (darker, teal-green background, warm skin kept by 65% skin protection); identical
   means across the three frames (frozen per-shot transform, no flicker).
-- Not yet: the same grade live in AE/Premiere on this clip, per-frame render time
-  in host (CLI timing 3.8 s/frame includes node startup + 16-bit PNG I/O, not a
-  render benchmark).
+- LIVE AE 24.6.2 PASS on this clip (ae-live/): empty untitled project, MOV imported,
+  1080x1920 comp, OdyHost.apply(grade.odyn + effectParams) -> linked=1 (link -19816).
+  Graded frames at 0.5/1.5/2.5 s vs still-native run on AE's own effect-off frames:
+  |diff| mean 0.00, max 1/255 (16 bpc). compare-ae.jpg = src | graded | reference.
+- saveFrameToPng writes only after the script returns: queue frames, poll the file
+  from outside. Rough wall time (file mtimes, incl. HEVC decode + 16-bit PNG encode):
+  ~5 s/frame graded vs ~3 s/frame effect off; not a real-time playback benchmark.
+- Not yet: Premiere on this clip; AE project left untitled/unsaved (user's to discard).
 
 ## Previous checkpoint — AE undo/redo of panel apply (Claude, 2026-11-20)
 
