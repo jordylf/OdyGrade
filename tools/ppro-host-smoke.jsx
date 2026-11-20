@@ -17,15 +17,18 @@
  // "real <dir>": NEW scratch project with <dir>/source.mov, src frames, panel apply (params only).
  // "rframes <dir>": after the manual "Load native grade..." click, export graded frames.
  var reopen=root.indexOf('reopen ')===0,applying=root.indexOf('apply ')===0,probe=root.indexOf('probe ')===0,exporting=root.indexOf('export ')===0,depth=root.indexOf('depth ')===0;
- var real=root.indexOf('real ')===0,rframes=root.indexOf('rframes ')===0;
- if(reopen||exporting)root=root.substring(7);if(applying||probe||depth)root=root.substring(6);if(real)root=root.substring(5);if(rframes)root=root.substring(8);
+ // "reapply <dir>": panel apply again onto the clip that already has OdyGrade (Look Amber, Grain 35).
+ // "snap <dir>|<name>": read-only except one PNG <name>.png at 1.5 s + Look/Grain/link values.
+ var real=root.indexOf('real ')===0,rframes=root.indexOf('rframes ')===0,reapply=root.indexOf('reapply ')===0,snap=root.indexOf('snap ')===0,sname='';
+ if(reopen||exporting)root=root.substring(7);if(applying||probe||depth)root=root.substring(6);if(real||snap)root=root.substring(5);if(rframes||reapply)root=root.substring(8);
+ if(snap){sname=root.substring(root.lastIndexOf('|')+1);root=root.substring(0,root.lastIndexOf('|'));}
  if(probe){  // read-only: report each clip's Grade link value in the active sequence
   var pr=new File(root+'/probe-'+new Date().getTime()+'.txt'),ps=app.project.activeSequence,pv=[];
   for(var pi=0;ps&&pi<ps.videoTracks[0].clips.numItems;pi++){var pcs=ps.videoTracks[0].clips[pi].components;
    for(var pj=0;pj<pcs.numItems;pj++)if(pcs[pj].displayName==='OdyGrade')for(var pk=0;pk<pcs[pj].properties.numItems;pk++)if(pcs[pj].properties[pk].displayName==='Grade link')pv.push(pi+':'+pcs[pj].properties[pk].getValue());}
   pr.open('w');pr.write(pv.join(' '));pr.close();return;}
  // Table, not a nested ternary: PPro 24 ExtendScript picked the wrong branch of the long chain.
- var names=[[reopen,'host-result'],[applying,'apply-result'],[exporting,'export-queued'],[real,'real-result'],[rframes,'rframes-result'],[depth,'depth-result']],rn='phase1';
+ var names=[[reopen,'host-result'],[applying,'apply-result'],[exporting,'export-queued'],[real,'real-result'],[rframes,'rframes-result'],[depth,'depth-result'],[reapply,'reapply-result'],[snap,'snap-'+sname]],rn='phase1';
  for(var ni=0;ni<names.length;ni++)if(names[ni][0]){rn=names[ni][1];break;}
  var dir=new Folder(root),report=new File(dir.fsName+'/'+rn+'.json'),log=[];
  function quote(s){return '"'+String(s).replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\r/g,'\\r').replace(/\n/g,'\\n')+'"';}
@@ -62,6 +65,20 @@
    log.push('apply='+rr.ok+' count='+rr.count+' linked='+rr.linked+' err='+rr.error);if(!rr.ok)throw Error(rr.error);
    at(rs,rt[1]);frame('params-1');app.project.save();
    write(true,'Real clip imported, src frames exported, panel apply done (params only). Click "Load native grade..." then queue "rframes <dir>".');return;
+  }
+  if(reapply||snap){
+   if(!app.project||!same(app.project.path,rp))throw Error('Real scratch project is not the active project. Refused; nothing modified.');
+   var xq=bySeqName('OdyGrade real');app.project.activeSequence=xq;var xc=xq.videoTracks[0].clips[0],xe=effect2(xc);
+   var vals=function(){var e=effect2(xc);return e?'look='+prop(e,'Look').getValue()+' grain='+prop(e,'Grain').getValue()+' link='+prop(e,'Grade link').getValue():'no effect';}
+   log.push('before '+vals());
+   if(reapply){
+    if(!xe)throw Error('Clip has no OdyGrade to re-apply onto');
+    $.evalFile(new File($.fileName).parent.parent.fsName+'/host/bridge.jsx');xc.setSelected(true,true);
+    var xg=new File(dir.fsName+'/grade.odyn');xg.open('r');var xs=xg.read();xg.close();
+    var xr=eval('('+OdyHost.apply(encodeURIComponent(xs),[['Look',1,1],['Grain',35,0]])+')');
+    log.push('apply='+xr.ok+' count='+xr.count+' err='+xr.error+'; after '+vals());if(!xr.ok)throw Error(xr.error);sname='reapply-1';
+   }
+   at(xq,1.5);frame(sname);write(true,reapply?'Re-applied onto existing OdyGrade; frame exported.':'Snapshot exported.');return;
   }
   if(rframes){
    if(!app.project||!same(app.project.path,rp))throw Error('Real scratch project is not the active project. Refused; nothing modified.');

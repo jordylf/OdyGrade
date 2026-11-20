@@ -28,8 +28,13 @@ Updated: 2026-11-21 (Asia/Jakarta)
   panel apply as ONE "Apply Effect" step; the ~17 scripted setValue calls create no
   history entries. One Edit > Undo removes OdyGrade (Effect Controls empty, colours back
   to source); Redo restores it and the redone frames == original graded (0.000, max 0;
-  again-*.png). Untested risk: re-apply onto a clip that ALREADY has OdyGrade only calls
-  setValue, which is not in History, so Undo would not revert those values.
+  again-*.png).
+- LIVE re-apply (job "reapply": Look Amber, Grain 35 onto the existing OdyGrade, new
+  token) CONFIRMS the risk: History gains no step. One Undo then removes the whole
+  effect (frame == source, 0.00), i.e. the FIRST grade is lost too; Redo brings back the
+  re-applied values (look=1 grain=35, frame == reapply, 0.00), never the first grade.
+  Re-apply in Premiere is therefore not undoable on its own. Fix not chosen yet (options:
+  add a fresh instance per apply, or warn in the panel). Jobs "reapply"/"snap" added.
 
 ## Previous checkpoint — first real-footage grade (Claude, 2026-11-20)
 
