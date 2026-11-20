@@ -25,6 +25,8 @@ struct Settings {
     double preserve_skin{0.65}, fade{}, shoulder{};
     std::string look{"neutral"};
     std::string input_profile{"srgb"};
+    std::string stock{"none"};  // film stock emulation key (src/engine.js STOCKS)
+    double stock_amount{1};
 };
 struct Film {
     double grain{}, bloom{}, halation{}, vignette{}, bleach{}, ratio{};

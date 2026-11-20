@@ -8,7 +8,7 @@
   "use strict";
   var VERSION = 2;
   var DEFAULTS = {strength:1, exposure:0, temperature:0, tint:0, contrast:1,
-    saturation:1, preserveSkin:0.65, fade:0, shoulder:0, look:"neutral", inputProfile:"srgb"};
+    saturation:1, preserveSkin:0.65, fade:0, shoulder:0, look:"neutral", inputProfile:"srgb", stock:"none", stockAmount:1};
   var LOOKS = {
     neutral:{name:"Neutral",shadow:[0,0],highlight:[0,0],sat:1,contrast:1},
     amber:{name:"Amber Hour",shadow:[-0.006,-0.009],highlight:[0.012,0.027],sat:0.95,contrast:1.06},
@@ -21,6 +21,35 @@
     cyan:{name:"Cyan District",shadow:[-0.023,-0.019],highlight:[0.018,0.020],sat:0.9,contrast:1.14},
     velvet:{name:"Velvet Night",shadow:[0.014,-0.018],highlight:[0.012,0.012],sat:0.85,contrast:1.08}
   };
+  // Film stock emulation (own design; names are generic, not any manufacturer's product).
+  // curve [S-curve gamma, black level, white level] on OKLab L; sat [mid, shadow, highlight];
+  // shadow/highlight a,b split tone; hue = rotation (rad) of warm, green and blue hue bands.
+  var STOCKS = {
+    none:{name:"None",curve:[1,0,1],sat:[1,1,1],shadow:[0,0],highlight:[0,0],hue:[0,0,0]},
+    tungsten:{name:"Tungsten 500",curve:[1.08,0.12,0.97],sat:[0.92,0.8,0.85],shadow:[-0.012,-0.012],highlight:[0.006,0.014],hue:[0.05,0.18,-0.05]},
+    daylight:{name:"Daylight 250",curve:[1.05,0.08,0.98],sat:[1,0.9,0.9],shadow:[-0.004,-0.006],highlight:[0.004,0.01],hue:[0.03,0.08,0]},
+    portrait:{name:"Portrait 400",curve:[0.9,0.14,0.96],sat:[0.85,0.85,0.75],shadow:[-0.004,-0.008],highlight:[0.008,0.012],hue:[-0.04,0.22,0.05]},
+    chrome:{name:"Chrome 100",curve:[1.3,0,1],sat:[1.2,1.05,0.95],shadow:[0.004,-0.014],highlight:[0,0.006],hue:[-0.05,-0.06,0.08]},
+    consumer:{name:"Consumer 200",curve:[1.12,0.07,0.97],sat:[1.08,0.9,0.9],shadow:[-0.01,0.004],highlight:[0.006,0.02],hue:[0.08,-0.1,0]},
+    print:{name:"Cinema Print",curve:[1.22,0.04,0.95],sat:[0.9,0.7,0.8],shadow:[-0.016,-0.018],highlight:[0.012,0.022],hue:[0,0.15,-0.06]},
+    mono:{name:"Mono 400",curve:[1.15,0.08,0.98],sat:[0,1,1],shadow:[0,0],highlight:[0,0],hue:[0,0,0]},
+    expired:{name:"Expired",curve:[0.85,0.2,0.92],sat:[0.78,0.9,0.8],shadow:[0.01,-0.01],highlight:[0.014,0.03],hue:[0.06,0.12,0.1]}
+  };
+  var HUE_BANDS=[0.9,2.5,-1.7];  // OKLab hue centres: warm/skin, green, blue
+  function stock(c,k,amount){
+    if(amount<=0||k===STOCKS.none)return c;
+    var L=clamp(c[0]),g=k.curve[0],p=Math.pow(L,g),y=p/(p+Math.pow(1-L,g));
+    var l=k.curve[1]+(k.curve[2]-k.curve[1])*y;
+    var sat=k.sat[0]*mix(k.sat[1],1,smooth(0,0.35,L))*mix(1,k.sat[2],smooth(0.7,1,L));
+    var a=c[1]*sat,b=c[2]*sat,ch=Math.hypot(a,b);
+    if(ch>1e-6){
+      var h=Math.atan2(b,a),rot=0;
+      for(var i=0;i<3;i++){var d=h-HUE_BANDS[i];d-=2*Math.PI*Math.round(d/(2*Math.PI));rot+=k.hue[i]*Math.exp(-(d/0.6)*(d/0.6));}
+      rot*=smooth(0.01,0.05,ch);var cs=Math.cos(rot),sn=Math.sin(rot),a0=a;a=a0*cs-b*sn;b=a0*sn+b*cs;
+    }
+    var t=smooth(0.15,0.85,l);a+=mix(k.shadow[0],k.highlight[0],t);b+=mix(k.shadow[1],k.highlight[1],t);
+    return [mix(c[0],l,amount),mix(c[1],a,amount),mix(c[2],b,amount)];
+  }
   function clamp(x,lo,hi){return Math.max(lo === undefined ? 0:lo,Math.min(hi === undefined ? 1:hi,x));}
   function mix(a,b,t){return a+(b-a)*t;}
   function smooth(a,b,x){var t=clamp((x-a)/(b-a));return t*t*(3-2*t);}
@@ -46,13 +75,14 @@
   function settings(input){
     var o=Object.assign({},DEFAULTS),ranges={strength:[0,1],exposure:[-4,4],
       temperature:[-1,1],tint:[-1,1],contrast:[0.5,1.8],saturation:[0,2],
-      preserveSkin:[0,1],fade:[0,0.2],shoulder:[0,1]};
+      preserveSkin:[0,1],fade:[0,0.2],shoulder:[0,1],stockAmount:[0,1]};
     Object.keys(DEFAULTS).forEach(function(k){if(input&&Object.prototype.hasOwnProperty.call(input,k))o[k]=input[k];});
     Object.keys(ranges).forEach(function(k){
       if(typeof o[k]!=="number"||!Number.isFinite(o[k])) throw Error("Invalid setting: "+k);
       o[k]=clamp(o[k],ranges[k][0],ranges[k][1]);
     });
     if(!Object.prototype.hasOwnProperty.call(LOOKS,o.look)) throw Error("Unknown look");
+    if(!Object.prototype.hasOwnProperty.call(STOCKS,o.stock)) throw Error("Unknown film stock");
     CM.profile(o.inputProfile);
     return o;
   }
@@ -188,7 +218,7 @@
     if(model&&(model.version===1?'srgb':model.inputProfile)!==o.inputProfile)throw Error("Input profile changed: refit the match");
     if(model && ["exposure","temperature","tint"].some(function(k){return Math.abs(model.correction[k]-o[k])>0.000001;}))
       throw Error("Correction changed: refit the match before exporting");
-    var look=LOOKS[o.look],normalize=CM.create(o.inputProfile);
+    var look=LOOKS[o.look],film=STOCKS[o.stock],normalize=CM.create(o.inputProfile);
     return function(rgb){
       var base=toLab(correct(normalize(rgb),o)),c=base.slice();
       if(model && o.strength>0){
@@ -205,6 +235,7 @@
       c[1]=c[1]*sat+mix(look.shadow[0],look.highlight[0],t);
       c[2]=c[2]*sat+mix(look.shadow[1],look.highlight[1],t);
       c[0]=(c[0]-0.5)*o.contrast*look.contrast+0.5;
+      c=stock(c,film,o.stockAmount);
       c[0]=mix(c[0],o.fade+(1-o.fade)*c[0],1);
       if(o.shoulder>0&&c[0]>0.65)c[0]=mix(c[0],0.65+0.35*(1-Math.exp(-(c[0]-0.65)/0.35)),o.shoulder);
       return fromLab(c).map(function(x){return clamp(x);});
@@ -261,6 +292,6 @@
     createTransform(x.model,x.settings);
     return x;
   }
-  return {VERSION:VERSION,DEFAULTS:DEFAULTS,LOOKS:LOOKS,toLab:toLab,fromLab:fromLab,
+  return {VERSION:VERSION,DEFAULTS:DEFAULTS,LOOKS:LOOKS,STOCKS:STOCKS,toLab:toLab,fromLab:fromLab,
     fit:fit,fitFrames:fitFrames,render:render,createTransform:createTransform,cube:cube,serialize:serialize,parse:parse,settings:settings,autoCorrect:autoCorrect,autoCorrectFrames:autoCorrectFrames};
 });

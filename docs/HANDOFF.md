@@ -2,7 +2,23 @@
 Updated: 2026-11-21 (Asia/Jakarta)
 
 
-## Latest checkpoint — Grain format + Film Format (Claude, 2026-11-21, dev.11 installed, AE + Premiere verified)
+## Latest checkpoint — Film stock presets (Claude, 2026-11-21, not yet installed)
+
+- Own film stock emulation (generic names, no manufacturer looks/trademarks): None, Tungsten 500,
+  Daylight 250, Portrait 400, Chrome 100, Consumer 200, Cinema Print, Mono 400, Expired.
+  src/engine.js STOCKS + stock(): S-curve on OKLab L with black/white levels, saturation by
+  luminance, split tone, hue rotation of warm/green/blue bands; applied after Look, before
+  fade/shoulder; "Stock amount" mixes 0-100%. Included in .cube export (colour transform).
+- Native mirrors it (kStocks generated into looks.hpp, apply_stock in core.cpp).
+  Snapshot ODYGRADE_NATIVE 5 adds "stock <key> <amount>" after profile; reader keeps v1-v4.
+- Adobe params appended after Perforations: "Film stock" popup (9) and "Stock amount" slider.
+  Panel: Film stock select at the top of Color controls + Stock amount slider; effectParams sends both.
+- Tests 58/58 (new JS<->native parity for every stock at 100% and 40%); harness checks the
+  stock param matches a direct core render, rejects out of range, and None restores output.
+- Example grid: work/adobe-host/runs/stocks-20261121-050620/stocks.jpg.
+- Not done: install as dev.12 + live AE/Premiere check.
+
+## Earlier checkpoint — Grain format + Film Format (Claude, 2026-11-21, dev.11 installed, AE + Premiere verified)
 
 - User asked for Pocket Grade feature parity (own implementation; no Sotoi looks, names
   or UI copied). Added, mirrored equation-for-equation in src/film.js and core.cpp:

@@ -1,6 +1,8 @@
 # OdyGrade implementation status
 
-Latest (Claude, 2026-11-21): Grain format (8/16/35/65 mm + ISO) and Film format (weave, flicker,
+Latest (Claude, 2026-11-21): Film stock presets (9, own emulation, snapshot v5, Adobe params
+"Film stock"/"Stock amount") added, tests 58/58, harness PASS; not installed yet.
+Earlier: Grain format (8/16/35/65 mm + ISO) and Film format (weave, flicker,
 dust, perforations) added, snapshot v4, tests pass; dev.11 installed, AE live frame 0 == offline (max 0/255), Premiere live mean 0.42/255 at matching frame index.
 Earlier 2026-11-21: reference fit now compresses the saturated chroma tail
 (snapshot v3; real clip p99 chroma 0.125 -> 0.104 vs ref 0.103); dev.10 installed; AE live == offline (max 1/255), Premiere live mean 0.43/255 from offline, chroma p99 0.104.

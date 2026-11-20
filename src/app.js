@@ -44,7 +44,7 @@ function controls(){
  ["temperature","Temperature",-1,1,.01,100,""],["tint","Tint",-1,1,.01,100,""],
  ["contrast","Contrast",.5,1.8,.01,100,"%"],["saturation","Saturation",0,2,.01,100,"%"],
  ["preserveSkin","Preserve skin hue",0,1,.01,100,"%"],["fade","Faded black",0,.2,.005,100,"%"],
- ["shoulder","Highlight softness",0,1,.01,100,"%"]];
+ ["shoulder","Highlight softness",0,1,.01,100,"%"],["stockAmount","Stock amount",0,1,.01,100,"%"]];
  var film=[["grain","Grain",0,1,.01,100,"%"],["bloom","Bloom",0,1,.01,100,"%"],
  ["halation","Halation",0,1,.01,100,"%"],["vignette","Vignette",0,1,.01,100,"%"],
  ["bleach","Bleach bypass",0,1,.01,100,"%"],["iso","Grain ISO",50,500,10,1,""],
@@ -77,7 +77,8 @@ function controls(){
 }
 function syncControl(id,v){var el=$(id);el.value=v;$(id+"Value").textContent=(v*Number(el.dataset.multiplier)).toFixed(id==="exposure"?2:0)+el.dataset.suffix;}
 function sync(){
- Object.keys(state.settings).forEach(function(k){if(k!=="look"&&k!=="inputProfile")syncControl(k,state.settings[k]);});
+ Object.keys(state.settings).forEach(function(k){if(k!=="look"&&k!=="inputProfile"&&k!=="stock")syncControl(k,state.settings[k]);});
+ $("stock").value=state.settings.stock;
  $("sourceProfile").value=state.settings.inputProfile;
  $("profileHelp").textContent=state.settings.inputProfile==='srgb'?'Use for screenshots or footage already normalized by your editor.':
   state.settings.inputProfile==='rec709-gamma24'?'Full-range display RGB, gamma 2.4 with ideal black. This is not camera Rec.709 OETF.':
@@ -249,6 +250,8 @@ $("auto").addEventListener("click",async function(){
   sync();await requestRender();status("Suggested exposure and balance applied. Fine-tune for intentional lighting.");
  }catch(e){fail(e);}
 });
+Object.keys(E.STOCKS).forEach(function(k){var o=document.createElement("option");o.value=k;o.textContent=E.STOCKS[k].name;$("stock").appendChild(o);});
+$("stock").addEventListener("change",function(){state.settings=Object.assign({},state.settings,{stock:this.value});requestRender().catch(fail);});
 ["ratio","gauge","format","perfs"].forEach(function(id){$(id).addEventListener("change",function(){state.film[id]=Number(this.value);requestRender().catch(fail);});});
 $("reset").addEventListener("click",function(){state.settings=E.settings({inputProfile:state.settings.inputProfile});state.film=F.normalize();state.model=null;state.analysis=null;state.recipeLoaded=false;sync();requestRender().catch(fail);status("Color and film controls reset. Source profile retained.");});
 $("shotFrame").addEventListener('change',function(){selectSource(Number(this.value));});
@@ -278,7 +281,8 @@ function effectParams(recipe){
  return [["Look",look,1],["Match strength",s.strength*100,0],["Exposure trim",s.exposure,0],["Temperature trim",s.temperature*100,0],["Tint trim",s.tint*100,0],
   ["Contrast",s.contrast*100,0],["Saturation",s.saturation*100,0],["Skin hue protection",s.preserveSkin*100,0],["Faded black",s.fade*100,0],["Highlight softness",s.shoulder*100,0],
   ["Grain",f.grain*100,0],["Bloom",f.bloom*100,0],["Halation",f.halation*100,0],["Vignette",f.vignette*100,0],["Bleach bypass",f.bleach*100,0],["Frame ratio",ratio,1],
-  ["Grain format",[0,8,16,35,65].indexOf(f.gauge),1],["Grain ISO",f.iso,0],["Film format",f.format,1],["Gate weave",f.weave*100,0],["Flicker",f.flicker*100,0],["Dust",f.dust*100,0],["Perforations",f.perfs,1]];
+  ["Grain format",[0,8,16,35,65].indexOf(f.gauge),1],["Grain ISO",f.iso,0],["Film format",f.format,1],["Gate weave",f.weave*100,0],["Flicker",f.flicker*100,0],["Dust",f.dust*100,0],["Perforations",f.perfs,1],
+  ["Film stock",Math.max(0,Object.keys(E.STOCKS).indexOf(s.stock)),1],["Stock amount",s.stockAmount*100,0]];
 }
 $("applyNative").addEventListener('click',async function(){try{
  var recipe=E.parse(E.serialize(state.model,state.settings,state.film));

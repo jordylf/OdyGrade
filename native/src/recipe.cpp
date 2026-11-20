@@ -23,12 +23,13 @@ Recipe read_recipe(const std::string& text) {
     if(text.size()>65536)throw std::invalid_argument("Native recipe exceeds 64 KB");
     std::istringstream in(text);in.imbue(std::locale::classic());
     token(in,"ODYGRADE_NATIVE");const auto version=number(in);
-    if(version!=1&&version!=2&&version!=3&&version!=4)throw std::invalid_argument("Unsupported native recipe version");
+    if(version!=1&&version!=2&&version!=3&&version!=4&&version!=5)throw std::invalid_argument("Unsupported native recipe version");
     Recipe r;auto& s=r.settings;auto& f=r.film;
     token(in,"settings");s.strength=number(in);s.exposure=number(in);s.temperature=number(in);s.tint=number(in);
     s.contrast=number(in);s.saturation=number(in);s.preserve_skin=number(in);s.fade=number(in);s.shoulder=number(in);
     token(in,"look");if(!(in>>s.look))throw std::invalid_argument("Missing look");
     if(version>=2){token(in,"profile");if(!(in>>s.input_profile))throw std::invalid_argument("Missing input profile");}
+    if(version>=5){token(in,"stock");if(!(in>>s.stock))throw std::invalid_argument("Missing film stock");s.stock_amount=number(in);}
     token(in,"model");const auto enabled=number(in);if(enabled!=0&&enabled!=1)throw std::invalid_argument("Invalid model flag");
     r.model.enabled=enabled==1;
     if(r.model.enabled) {

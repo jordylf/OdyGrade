@@ -7,8 +7,8 @@
   'use strict';
   function compile(recipe){
     var r=E.parse(JSON.stringify(recipe)),film=F.normalize(r.film),s=r.settings;
-    var lines=['ODYGRADE_NATIVE 4','settings '+[s.strength,s.exposure,s.temperature,s.tint,
-      s.contrast,s.saturation,s.preserveSkin,s.fade,s.shoulder].join(' '),'look '+s.look,'profile '+s.inputProfile,'model '+(r.model?1:0)];
+    var lines=['ODYGRADE_NATIVE 5','settings '+[s.strength,s.exposure,s.temperature,s.tint,
+      s.contrast,s.saturation,s.preserveSkin,s.fade,s.shoulder].join(' '),'look '+s.look,'profile '+s.inputProfile,'stock '+s.stock+' '+s.stockAmount,'model '+(r.model?1:0)];
     function distribution(d){
       // v3: chroma tail p90 p99, or -1 -1 for models fitted before it existed.
       return d.quantiles.concat(d.zones.reduce(function(values,z){return values.concat([z.a,z.b,z.sa,z.sb]);},[]),d.chroma||[-1,-1]).join(' ');

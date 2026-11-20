@@ -28,6 +28,7 @@ void trace_text(int cmd,const char* what){if(auto f=trace_file()){std::fprintf(f
 constexpr const char* Looks[]={"neutral","amber","nocturne","evergreen","rose","silver","coast","earth","cyan","velvet"};
 constexpr double Ratios[]={0,1.33,1.85,2.39};
 constexpr double Gauges[]={0,8,16,35,65};
+constexpr const char* Stocks[]={"none","tungsten","daylight","portrait","chrome","consumer","print","mono","expired"};  // order of src/engine.js STOCKS
 std::string text(PF_InData* in_data,PF_Handle h){
  if(!h)return {};
  const auto n=PF_GET_HANDLE_SIZE(h);
@@ -90,6 +91,8 @@ PF_Err setup(PF_InData* in_data,PF_OutData* out_data){
  const Slider format[]={{"Gate weave",0,100,0,Weave},{"Flicker",0,100,0,Flicker},{"Dust",0,100,0,Dust}};
  for(const auto& s:format){AEFX_CLR_STRUCT(def);PF_ADD_FLOAT_SLIDERX(s.label,s.lo,s.hi,s.lo,s.hi,s.initial,PF_Precision_HUNDREDTHS,0,0,s.id);}
  AEFX_CLR_STRUCT(def);PF_ADD_POPUP("Perforations",2,1,"Off|On",Perfs);
+ AEFX_CLR_STRUCT(def);PF_ADD_POPUP("Film stock",9,1,"None|Tungsten 500|Daylight 250|Portrait 400|Chrome 100|Consumer 200|Cinema Print|Mono 400|Expired",FilmStock);
+ AEFX_CLR_STRUCT(def);PF_ADD_FLOAT_SLIDERX("Stock amount",0,100,0,100,100,PF_Precision_HUNDREDTHS,0,0,StockAmount);
  trace("setup done params=%d",Count);
  out_data->num_params=Count;return PF_Err_NONE;
 }
@@ -152,6 +155,8 @@ PF_Err render(PF_InData* in_data,PF_ParamDef* p[],PF_LayerDef* output){
  if(look<0||look>=10||ratio<0||ratio>=4)throw std::invalid_argument("Invalid look or ratio");
  base.settings.look=Looks[look];base.settings.strength=value(p,Strength)/100;
  base.settings.contrast=value(p,Contrast)/100;base.settings.saturation=value(p,Saturation)/100;
+ const auto stock=p[FilmStock]->u.pd.value-1;if(stock<0||stock>=9)throw std::invalid_argument("Invalid film stock");
+ base.settings.stock=Stocks[stock];base.settings.stock_amount=value(p,StockAmount)/100;
  base.settings.preserve_skin=value(p,Skin)/100;base.settings.fade=value(p,Fade)/100;base.settings.shoulder=value(p,Shoulder)/100;
  base.film={};
  odygrade::Recipe finishing;
@@ -217,6 +222,8 @@ PF_Err set_snapshot(PF_InData* in_data,PF_ParamDef* p[],const std::string& snaps
  const auto popup=[&](int id,int index){p[id]->u.pd.value=static_cast<A_short>(index+1);p[id]->uu.change_flags|=PF_ChangeFlag_CHANGED_VALUE;};
  int gauge=0;for(int i=0;i<5;++i)if(f.gauge==Gauges[i])gauge=i;
  popup(GrainGauge,gauge);popup(FilmFormat,static_cast<int>(f.format));popup(Perfs,static_cast<int>(f.perfs));
+ int stock=0;for(int i=0;i<9;++i)if(s.stock==Stocks[i])stock=i;
+ popup(FilmStock,stock);change(StockAmount,s.stock_amount*100);
  return PF_Err_NONE;
 }
 } // namespace odygrade_adobe

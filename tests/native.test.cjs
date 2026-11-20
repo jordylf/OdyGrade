@@ -24,8 +24,19 @@ function success(result){assert.equal(result.status,0,result.stderr?.toString())
 function difference(a,b){let sum=0,max=0;assert.equal(a.length,b.length);for(let i=0;i<a.length;i++){
  const delta=Math.abs(a[i]-b[i]);sum+=delta;max=Math.max(max,delta);}return {mean:sum/a.length,max};}
 test('native snapshot canonicalizes valid recipes and rejects invalid JSON state',()=>{
- const r=recipe();assert.match(N.compile(r),/^ODYGRADE_NATIVE 4\n/);
+ const r=recipe();assert.match(N.compile(r),/^ODYGRADE_NATIVE 5\n/);
  r.settings.look='not-a-look';assert.throws(()=>N.compile(r),/look/i);
+ r.settings.look='neutral';r.settings.stock='not-a-stock';assert.throws(()=>N.compile(r),/stock/i);
+});
+test('native film stocks match JS for every stock and partial amount',{skip:!available},()=>{
+ const source=image(),reference=E.render(source,null,{look:'amber'});
+ for(const stock of Object.keys(E.STOCKS))for(const stockAmount of [1,.4]){
+  const settings={look:'rose',stock,stockAmount,contrast:1.05,shoulder:.3},model=E.fit(source,reference,settings),r=recipe(model,settings);
+  const actual=success(render(r,source.data,source.width,source.height)),expected=E.render(source,model,settings).data;
+  const error=difference(actual,expected);assert.ok(error.max<=1,stock+' '+stockAmount+': '+JSON.stringify(error));
+ }
+ const none=E.render(source,null,{}).data,off=E.render(source,null,{stock:'chrome',stockAmount:0}).data;
+ assert.deepEqual(off,none);assert.notDeepEqual(E.render(source,null,{stock:'chrome'}).data,none);
 });
 test('native color output matches JS across all ten looks and fitted correction',{skip:!available},()=>{
  const source=image(),reference=E.render(source,null,{look:'cyan',contrast:1.1,exposure:-.3});
@@ -64,7 +75,7 @@ test('native input profiles agree with JS on decoded and matched float colors',{
 test('native reader retains v1 snapshot compatibility',{skip:!available},()=>{
  const source=image(4,4),r=recipe(),dir=fs.mkdtempSync(path.join(os.tmpdir(),'odygrade-native-legacy-'));
  try{
-  const legacy=N.compile(r).replace('ODYGRADE_NATIVE 4','ODYGRADE_NATIVE 1').replace(/^profile .*\n/m,'').replace(/^(film(?: \S+){6})(?: \S+){7}$/m,'$1');
+  const legacy=N.compile(r).replace('ODYGRADE_NATIVE 5','ODYGRADE_NATIVE 1').replace(/^profile .*\n/m,'').replace(/^stock .*\n/m,'').replace(/^(film(?: \S+){6})(?: \S+){7}$/m,'$1');
   const file=path.join(dir,'legacy.odyn');fs.writeFileSync(file,legacy);
   const old=cp.spawnSync(exe,[file,'4','4','rgba8','rgba8'],{input:Buffer.from(source.data),windowsHide:true});
   assert.deepEqual(success(old),success(render(r,source.data,4,4)));

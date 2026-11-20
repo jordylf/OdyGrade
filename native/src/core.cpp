@@ -42,6 +42,26 @@ const Look& look_for(const std::string& key) {
     for(const auto& look:kLooks)if(key==look.key)return look;
     throw std::invalid_argument("Unknown look");
 }
+const Stock& stock_for(const std::string& key) {
+    for(const auto& s:kStocks)if(key==s.key)return s;
+    throw std::invalid_argument("Unknown film stock");
+}
+// Mirrors stock() in src/engine.js.
+Color apply_stock(Color c,const Stock& k,double amount) {
+    if(amount<=0||std::string(k.key)=="none")return c;
+    constexpr double bands[3]={.9,2.5,-1.7},pi=3.14159265358979323846;
+    const auto L=clamp(c[0]),p=std::pow(L,k.curve[0]),y=p/(p+std::pow(1-L,k.curve[0]));
+    const auto l=k.curve[1]+(k.curve[2]-k.curve[1])*y;
+    const auto sat=k.sat[0]*mix(k.sat[1],1,smooth(0,.35,L))*mix(1,k.sat[2],smooth(.7,1,L));
+    auto a=c[1]*sat,b=c[2]*sat;const auto ch=std::hypot(a,b);
+    if(ch>1e-6) {
+        const auto h=std::atan2(b,a);double rot=0;
+        for(int i=0;i<3;++i){auto d=h-bands[i];d-=2*pi*std::round(d/(2*pi));rot+=k.hue[i]*std::exp(-(d/.6)*(d/.6));}
+        rot*=smooth(.01,.05,ch);const auto cs=std::cos(rot),sn=std::sin(rot),a0=a;a=a0*cs-b*sn;b=a0*sn+b*cs;
+    }
+    const auto t=smooth(.15,.85,l);a+=mix(k.shadow[0],k.highlight[0],t);b+=mix(k.shadow[1],k.highlight[1],t);
+    return {mix(c[0],l,amount),mix(c[1],a,amount),mix(c[2],b,amount)};
+}
 const InputProfile& profile_for(const std::string& key) {
     for(const auto& profile:kInputProfiles)if(key==profile.key)return profile;
     throw std::invalid_argument("Unsupported input profile");
@@ -135,6 +155,7 @@ Color apply_color(Color rgb,const Recipe& r,const Look& look,const InputProfile&
     c[1]=c[1]*sat+mix(look.shadow[0],look.highlight[0],t);
     c[2]=c[2]*sat+mix(look.shadow[1],look.highlight[1],t);
     c[0]=(c[0]-.5)*s.contrast*look.contrast+.5;
+    c=apply_stock(c,stock_for(s.stock),s.stock_amount);
     c[0]=s.fade+(1-s.fade)*c[0];
     if(s.shoulder>0&&c[0]>.65)c[0]=mix(c[0],.65+.35*(1-std::exp(-(c[0]-.65)/.35)),s.shoulder);
     auto result=from_lab(c);for(auto& v:result)v=clamp(v);return result;
@@ -285,6 +306,7 @@ void validate(const Recipe& r) {
     check_range(s.contrast,.5,1.8,"Invalid contrast");check_range(s.saturation,0,2,"Invalid saturation");
     check_range(s.preserve_skin,0,1,"Invalid skin control");check_range(s.fade,0,.2,"Invalid fade");
     check_range(s.shoulder,0,1,"Invalid shoulder");(void)look_for(s.look);(void)profile_for(s.input_profile);
+    (void)stock_for(s.stock);check_range(s.stock_amount,0,1,"Invalid stock amount");
     if(r.model.enabled) {
         check_correction(r.model.correction);check_distribution(r.model.source);check_distribution(r.model.reference);
         if(r.model.input_profile!=s.input_profile)throw std::invalid_argument("Input profile changed: refit the match");
