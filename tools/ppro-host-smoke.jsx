@@ -94,12 +94,12 @@
    app.project.save();write(true,'Graded frames exported; scratch project saved.');return;
   }
   if(depth){
-   var dp=dir.fsName+'\\ppro-smoke.prproj';
+   var isReal=app.project&&same(app.project.path,rp),dp=isReal?rp:dir.fsName+'\\ppro-smoke.prproj';  // real-footage scratch or smoke scratch
    if(app.projects.numProjects===0&&!app.openDocument(dp,true,true,true))throw Error('Cannot open scratch project');
    if(!app.project||!same(app.project.path,dp))throw Error('Scratch project is not the active project. Refused; nothing modified.');
-   var ds=bySeqName('OdyGrade smoke');app.project.openSequence(ds.sequenceID);app.project.activeSequence=ds;app.enableQE();
-   var dtb=Number(ds.timebase),dc=ds.videoTracks[0].clips[ds.videoTracks[0].clips.numItems-1];
-   ds.setPlayerPosition(String((Math.round(Number(dc.start.ticks)/dtb)+30)*dtb));
+   var ds=bySeqName(isReal?'OdyGrade real':'OdyGrade smoke');app.project.openSequence(ds.sequenceID);app.project.activeSequence=ds;app.enableQE();
+   if(isReal)at(ds,1.5);else{var dtb=Number(ds.timebase),dc=ds.videoTracks[0].clips[ds.videoTracks[0].clips.numItems-1];
+   ds.setPlayerPosition(String((Math.round(Number(dc.start.ticks)/dtb)+30)*dtb));}
    var st=ds.getSettings();st.maximumBitDepth=false;ds.setSettings(st);frame('depth-off');
    st=ds.getSettings();st.maximumBitDepth=true;st.maximumRenderQuality=true;ds.setSettings(st);
    log.push('maxDepth='+ds.getSettings().maximumBitDepth);frame('depth-max');

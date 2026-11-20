@@ -41,6 +41,10 @@ Updated: 2026-11-21 (Asia/Jakarta)
   Costs: 2 undo steps per re-apply; the new instance goes to the END of the clip's
   effect stack (order changes if other effects followed OdyGrade). AE unchanged.
   Probe job now dumps reflect.methods of TrackItem / QE item / QE component.
+- Premiere Maximum Bit Depth (dev.9, job "depth" now also runs in the ppro-real scratch):
+  no crash; depth-max.png == depth-off.png (0.000, max 0). NOT proof of the 32f path:
+  QE exportFramePNG may render 8-bit regardless. Premiere holds %TEMP%/OdyGrade-trace.log
+  this session; after it exits, look for "render fmt in=8" (BGRA32F) near the end.
 
 ## Previous checkpoint — first real-footage grade (Claude, 2026-11-20)
 
