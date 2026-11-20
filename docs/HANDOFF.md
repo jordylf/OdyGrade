@@ -43,8 +43,11 @@ Updated: 2026-11-21 (Asia/Jakarta)
   Probe job now dumps reflect.methods of TrackItem / QE item / QE component.
 - Premiere Maximum Bit Depth (dev.9, job "depth" now also runs in the ppro-real scratch):
   no crash; depth-max.png == depth-off.png (0.000, max 0). NOT proof of the 32f path:
-  QE exportFramePNG may render 8-bit regardless. Premiere holds %TEMP%/OdyGrade-trace.log
-  this session; after it exits, look for "render fmt in=8" (BGRA32F) near the end.
+  QE exportFramePNG may render 8-bit regardless. Trace of that Premiere session (read
+  after exit): 383 BGRA8 renders + 35 BGRA32F renders ("in=8 out=8"), the last one at
+  the very end (depth-max), zero "error" lines -> Premiere 32f path exercised, no
+  failures, output equals 8-bit for this SDR clip. Unproven: values >1.0 (needs an HDR/
+  float source). Trace lines can interleave (unsynchronized writes; cosmetic).
 
 ## Previous checkpoint — first real-footage grade (Claude, 2026-11-20)
 

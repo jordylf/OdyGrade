@@ -8,7 +8,8 @@ Earlier (2026-11-20): panel "Apply to selected clips" live-verified in Premiere
 and AE. dev.6 auto-embeds the reference grade in AE (no click, survives save);
 the Premiere manual Load click is live-verified, including save/reopen persistence.
 Media Encoder export from Premiere renders the effect identically (live-verified).
-AE 32 bpc works (effect runs at 16 bpc, HDR >1.0 clipped); Premiere 32f unproven.
+AE 32 bpc works (effect runs at 16 bpc, HDR >1.0 clipped); Premiere 32f path live-verified
+(BGRA32F renders, no errors, SDR output == 8-bit); >1.0 values in Premiere untested.
 AE undo/redo of apply verified (one step, embedded grade restored); Premiere undo/redo verified for first apply (1 step) and re-apply (replaces the
 instance: 2 steps, previous grade restored exactly; new instance moves to stack end).
 Real iPhone clip graded from a film still: AE live render == offline core (max 1/255);
