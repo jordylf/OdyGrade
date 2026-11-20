@@ -6,6 +6,8 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <map>
+#include <mutex>
 #include <stdexcept>
 #include <vector>
 #include <commdlg.h>
@@ -14,12 +16,15 @@ namespace {
 constexpr std::size_t Limit=65536;
 // Opt-in host trace: active only when %TEMP%\OdyGrade-trace.log already exists.
 // ponytail: unsynchronized appends; fine for single-threaded host bring-up only.
-void trace(const char* fmt,int a,int b=0){
+FILE* trace_file();
+void trace(const char* fmt,int a,int b=0){if(auto f=trace_file()){std::fprintf(f,fmt,a,b);std::fputc('\n',f);std::fflush(f);}}
+FILE* trace_file(){
  static FILE* f=[]{wchar_t p[MAX_PATH+32];const auto n=GetTempPathW(MAX_PATH,p);if(!n||n>MAX_PATH)return static_cast<FILE*>(nullptr);
   wcscat_s(p,L"OdyGrade-trace.log");if(GetFileAttributesW(p)==INVALID_FILE_ATTRIBUTES)return static_cast<FILE*>(nullptr);
   FILE* h=nullptr;return _wfopen_s(&h,p,L"a")?static_cast<FILE*>(nullptr):h;}();
- if(f){std::fprintf(f,fmt,a,b);std::fputc('\n',f);std::fflush(f);}
+ return f;
 }
+void trace_text(int cmd,const char* what){if(auto f=trace_file()){std::fprintf(f,"cmd=%d error: %s\n",cmd,what);std::fflush(f);}}
 constexpr const char* Looks[]={"neutral","amber","nocturne","evergreen","rose","silver","coast","earth","cyan","velvet"};
 constexpr double Ratios[]={0,1.33,1.85,2.39};
 std::string text(PF_InData* in_data,PF_Handle h){
@@ -105,6 +110,26 @@ PF_Err global(PF_InData* in_data,PF_OutData* out_data){
   return pixels.suite->AddSupportedPixelFormat(in_data->effect_ref,PrPixelFormat_BGRA_4444_8u);}
  return PF_Err_NONE;
 }
+std::string read_grade(const std::filesystem::path& path){
+ if(std::filesystem::file_size(path)>Limit)throw std::invalid_argument("Grade exceeds 64 KB");
+ std::ifstream input(path,std::ios::binary);if(!input)throw std::runtime_error("Cannot open native grade");
+ return std::string((std::istreambuf_iterator<char>(input)),{});
+}
+std::filesystem::path pending(int token){
+ wchar_t* appdata=nullptr;std::size_t n=0;if(_wdupenv_s(&appdata,&n,L"APPDATA")||!appdata)return {};
+ const auto path=std::filesystem::path(appdata)/L"OdyGrade"/L"pending"/(std::to_wstring(token)+L".odyn");std::free(appdata);
+ return std::filesystem::is_regular_file(path)?path:std::filesystem::path{};
+}
+// Premiere sends no param callback for scripted values, so a positive "Grade link" token
+// is resolved at render time. Panel never reuses a token, so cached files are immutable.
+// ponytail: unbounded per-process cache (~1 KB/grade); add eviction if it ever matters.
+std::string linked_grade(int token){
+ static std::mutex m;static std::map<int,std::string> cache;
+ std::lock_guard<std::mutex> lock(m);
+ if(const auto it=cache.find(token);it!=cache.end())return it->second;
+ const auto path=pending(token);if(path.empty())return {};
+ auto grade=read_grade(path);(void)odygrade::read_recipe(grade);return cache[token]=std::move(grade);
+}
 double value(PF_ParamDef* p[],int id){const double v=p[id]->u.fs_d.value;if(!std::isfinite(v))throw std::invalid_argument("Nonfinite effect parameter");return v;}
 PF_Err render(PF_InData* in_data,PF_ParamDef* p[],PF_LayerDef* output){
  if(!output||!p||!p[Input])return PF_Err_BAD_CALLBACK_PARAM;
@@ -113,7 +138,8 @@ PF_Err render(PF_InData* in_data,PF_ParamDef* p[],PF_LayerDef* output){
  if(in_data->field!=PF_Field_FRAME)throw std::invalid_argument("Progressive frames required; deinterlace before OdyGrade");
  if(input.width<1||input.height<1)return PF_Err_NONE;
  if(static_cast<std::uint64_t>(input.width)*input.height>16000000)throw std::invalid_argument("OdyGrade preview supports up to 16 megapixels");
- const auto encoded=text(in_data,p[Stored]->u.arb_d.value);
+ const auto token=p[Link]->u.sd.value;auto encoded=token>0?linked_grade(token):std::string{};
+ if(encoded.empty())encoded=text(in_data,p[Stored]->u.arb_d.value);
  auto base=encoded.empty()?odygrade::Recipe{}:odygrade::read_recipe(encoded);
  const auto look=p[Look]->u.pd.value-1,ratio=p[Ratio]->u.pd.value-1;
  if(look<0||look>=10||ratio<0||ratio>=4)throw std::invalid_argument("Invalid look or ratio");
@@ -142,16 +168,9 @@ PF_Err render(PF_InData* in_data,PF_ParamDef* p[],PF_LayerDef* output){
  odygrade::render(stageInput,target,finishing,static_cast<std::uint64_t>(frame),par);
  return PF_ABORT(in_data)?PF_Interrupt_CANCEL:PF_Err_NONE;
 }
-std::string read_grade(const std::filesystem::path& path){
- if(std::filesystem::file_size(path)>Limit)throw std::invalid_argument("Grade exceeds 64 KB");
- std::ifstream input(path,std::ios::binary);if(!input)throw std::runtime_error("Cannot open native grade");
- return std::string((std::istreambuf_iterator<char>(input)),{});
-}
 PF_Err link(PF_InData* in_data,PF_OutData* out_data,PF_ParamDef* p[]){
  const auto token=p[Link]->u.sd.value;if(token<=0)return PF_Err_NONE;  // <=0: idle or acknowledged
- wchar_t* appdata=nullptr;std::size_t n=0;if(_wdupenv_s(&appdata,&n,L"APPDATA")||!appdata)return PF_Err_NONE;
- const auto path=std::filesystem::path(appdata)/L"OdyGrade"/L"pending"/(std::to_wstring(token)+L".odyn");std::free(appdata);
- if(!std::filesystem::is_regular_file(path))return PF_Err_NONE;  // manual edit without a pending grade
+ const auto path=pending(token);if(path.empty())return PF_Err_NONE;  // manual edit without a pending grade
  const auto err=set_snapshot(in_data,p,read_grade(path));if(err)return err;
  p[Link]->u.sd.value=-token;p[Link]->uu.change_flags|=PF_ChangeFlag_CHANGED_VALUE;
  out_data->out_flags|=PF_OutFlag_REFRESH_UI;return PF_Err_NONE;
@@ -162,7 +181,9 @@ PF_Err load(PF_InData* in_data,PF_OutData* out_data,PF_ParamDef* p[],PF_UserChan
  wchar_t filename[32768]{};OPENFILENAMEW dialog{};dialog.lStructSize=sizeof(dialog);dialog.lpstrFile=filename;dialog.nMaxFile=32768;
  dialog.lpstrFilter=L"OdyGrade native grade (*.odyn)\0*.odyn\0\0";dialog.Flags=OFN_FILEMUSTEXIST|OFN_PATHMUSTEXIST|OFN_NOCHANGEDIR;
  if(!GetOpenFileNameW(&dialog)){if(CommDlgExtendedError())throw std::runtime_error("Native grade dialog failed");return PF_Err_NONE;}
- const auto err=set_snapshot(in_data,p,read_grade(std::filesystem::path(filename)));if(!err){out_data->out_flags|=PF_OutFlag_REFRESH_UI;std::snprintf(out_data->return_msg,sizeof(out_data->return_msg),"Reference grade embedded in this effect. Exposure/WB trims apply after matching.");}return err;
+ const auto err=set_snapshot(in_data,p,read_grade(std::filesystem::path(filename)));
+ if(!err){p[Link]->u.sd.value=0;p[Link]->uu.change_flags|=PF_ChangeFlag_CHANGED_VALUE;  // manual grade wins over a linked one
+  out_data->out_flags|=PF_OutFlag_REFRESH_UI;std::snprintf(out_data->return_msg,sizeof(out_data->return_msg),"Reference grade embedded in this effect. Exposure/WB trims apply after matching.");}return err;
 }
 } // namespace
 PF_Err set_snapshot(PF_InData* in_data,PF_ParamDef* p[],const std::string& snapshot){
@@ -201,6 +222,6 @@ extern "C" DllExport PF_Err EffectMain(PF_Cmd cmd,PF_InData* in_data,PF_OutData*
  default:break;
  }return PF_Err_NONE;
  }catch(const std::bad_alloc&){return PF_Err_OUT_OF_MEMORY;}
- catch(const std::exception& e){if(out_data){std::snprintf(out_data->return_msg,sizeof(out_data->return_msg),"OdyGrade: %s",e.what());out_data->out_flags|=PF_OutFlag_DISPLAY_ERROR_MESSAGE;}return PF_Err_INTERNAL_STRUCT_DAMAGED;}
+ catch(const std::exception& e){odygrade_adobe::trace_text(cmd,e.what());if(out_data){std::snprintf(out_data->return_msg,sizeof(out_data->return_msg),"OdyGrade: %s",e.what());out_data->out_flags|=PF_OutFlag_DISPLAY_ERROR_MESSAGE;}return PF_Err_INTERNAL_STRUCT_DAMAGED;}
  catch(...){return PF_Err_INTERNAL_STRUCT_DAMAGED;}
 }

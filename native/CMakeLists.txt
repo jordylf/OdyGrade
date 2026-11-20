@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.20)
 project(OdyGradeCore VERSION 0.3.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# Static CRT: Premiere/AE 2024 load their own msvcp140 14.23, older than our toolset; the
+# dynamic CRT then crashed std::mutex (VS 17.10+ constexpr mutex) inside Premiere renders.
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 find_program(NODE_EXECUTABLE node REQUIRED)
 find_package(Threads REQUIRED)
 set(GENERATED_LOOKS "${CMAKE_CURRENT_BINARY_DIR}/generated/looks.hpp")

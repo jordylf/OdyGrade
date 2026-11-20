@@ -1,8 +1,29 @@
 # Claude handoff — OdyGrade
-Updated: 2026-11-20 (Asia/Jakarta)
+Updated: 2026-11-21 (Asia/Jakarta)
 
 
-## Latest checkpoint — first real-footage grade (Claude, 2026-11-20)
+## Latest checkpoint — Premiere grade without the Load click (Claude, 2026-11-21)
+
+- Premiere sends no param callback for scripted setValue, so the effect now resolves a
+  positive "Grade link" token at RENDER time from %APPDATA%/OdyGrade/pending/<token>.odyn
+  (adapter.cpp linked_grade, cached per process). Bridge no longer prunes pending files
+  and never reuses a token. Manual Load resets Link to 0 so a loaded grade wins.
+  AE path unchanged (callback embeds, acks -token).
+- Limit: until "Load native grade..." is clicked, the Premiere grade lives in this
+  computer's pending store; a project moved to another machine renders params only.
+  Panel status text says so.
+- dev.8 CRASHED Premiere on the first linked render: hosts ship msvcp140 14.23, our
+  VS 17.x std::mutex needs a newer one. Fix: static CRT for all native targets
+  (native/CMakeLists.txt). dev.9 .aex imports neither msvcp140 nor vcruntime140.
+  Effect trace now also logs exception text ("cmd=N error: ...").
+- LIVE Premiere 24.6.1 PASS on dev.9 (runs/ppro-link-20261121-031304), no Load click:
+  graded frames == manual-Load run (0.000, max 0); vs offline mean 0.73 (same as
+  before). rframes 2.2-2.5 s/frame incl. PNG export. Report-name bug fixed (table
+  instead of nested ternary in ppro-host-smoke.jsx).
+- Not re-verified live on dev.9: AE (harness only). Installed: dev.9-staticcrt,
+  sha d327981a... Runner removed.
+
+## Previous checkpoint — first real-footage grade (Claude, 2026-11-20)
 
 - User iPhone clip (HEVC 1920x1080 rotated to 1080x1920, 60 fps, 3 s, BT.709 SDR)
   + user-supplied film still (palette strip/watermark cropped). Run folder

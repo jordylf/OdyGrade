@@ -281,8 +281,8 @@ function effectParams(recipe){
 $("applyNative").addEventListener('click',async function(){try{
  var recipe=E.parse(E.serialize(state.model,state.settings,state.film));
  var x=await B.apply(window.OdyNativeRecipe.compile(recipe),effectParams(recipe));
- var manual=recipe.model&&x.linked!==x.count;  // host did not run the effect's auto-embed
- status("OdyGrade applied to "+x.count+" clip(s)."+(manual?" For the reference match, click OdyGrade > Load native grade... and pick "+x.path:""));
+ var manual=recipe.model&&x.linked!==x.count;  // Premiere: grade read from this computer's store at render time
+ status("OdyGrade applied to "+x.count+" clip(s)."+(manual?" Reference match is live on this computer. To embed it in the project (for moving it elsewhere), click OdyGrade > Load native grade... and pick "+x.path:""));
 }catch(e){fail(e);}});
 $("loadRecipe").addEventListener("click",function(){$("recipeInput").click();});
 $("recipeInput").addEventListener("change",async function(){

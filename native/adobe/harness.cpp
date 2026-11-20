@@ -59,6 +59,13 @@ int main(int argc,char** argv){
    params[Link].u.sd.value=123;require(EffectMain(PF_Cmd_USER_CHANGED_PARAM,&in,&out,p,nullptr,&changed)==0,"link embed");
    require(params[Link].u.sd.value==-123&&params[Exposure].u.fs_d.value==0,"link must embed and acknowledge");
    require(std::string(static_cast<char*>(*params[Stored].u.arb_d.value))==snapshot,"linked snapshot stored");
+   // Premiere path: no callback ran, store empty, positive token -> render resolves the pending grade.
+   require(EffectMain(PF_Cmd_RENDER,&in,&out,p,&world,nullptr)==0,"embedded render");const auto embedded=dest;
+   const auto stored=params[Stored].u.arb_d.value,empty=allocate(1);params[Stored].u.arb_d.value=empty;
+   params[Link].u.sd.value=0;require(EffectMain(PF_Cmd_RENDER,&in,&out,p,&world,nullptr)==0&&std::memcmp(embedded.data(),dest.data(),dest.size()*4)!=0,"empty store renders params only");
+   params[Link].u.sd.value=123;require(EffectMain(PF_Cmd_RENDER,&in,&out,p,&world,nullptr)==0&&std::memcmp(embedded.data(),dest.data(),dest.size()*4)==0,"render-time link must match embedded grade");
+   params[Link].u.sd.value=124;require(EffectMain(PF_Cmd_RENDER,&in,&out,p,&world,nullptr)==0&&std::memcmp(embedded.data(),dest.data(),dest.size()*4)!=0,"unknown token falls back to store");
+   params[Stored].u.arb_d.value=stored;dispose(empty);params[Link].u.sd.value=0;
    std::filesystem::remove_all(appdata);}
   cancelled=true;require(EffectMain(PF_Cmd_RENDER,&in,&out,p,&world,nullptr)==PF_Interrupt_CANCEL,"host abort propagation");cancelled=false;
   std::vector<PF_Pixel16> deep(w*h),deepOut(w*h);for(int i=0;i<w*h;++i)deep[i]={32768,8000,16000,24000};

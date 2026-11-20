@@ -24,7 +24,10 @@
   for(var pi=0;ps&&pi<ps.videoTracks[0].clips.numItems;pi++){var pcs=ps.videoTracks[0].clips[pi].components;
    for(var pj=0;pj<pcs.numItems;pj++)if(pcs[pj].displayName==='OdyGrade')for(var pk=0;pk<pcs[pj].properties.numItems;pk++)if(pcs[pj].properties[pk].displayName==='Grade link')pv.push(pi+':'+pcs[pj].properties[pk].getValue());}
   pr.open('w');pr.write(pv.join(' '));pr.close();return;}
- var dir=new Folder(root),report=new File(dir.fsName+(reopen?'/host-result.json':applying?'/apply-result.json':exporting?'/export-queued.json':real?'/real-result.json':rframes?'/rframes-result.json':depth?'/depth-result.json':'/phase1.json')),log=[];
+ // Table, not a nested ternary: PPro 24 ExtendScript picked the wrong branch of the long chain.
+ var names=[[reopen,'host-result'],[applying,'apply-result'],[exporting,'export-queued'],[real,'real-result'],[rframes,'rframes-result'],[depth,'depth-result']],rn='phase1';
+ for(var ni=0;ni<names.length;ni++)if(names[ni][0]){rn=names[ni][1];break;}
+ var dir=new Folder(root),report=new File(dir.fsName+'/'+rn+'.json'),log=[];
  function quote(s){return '"'+String(s).replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\r/g,'\\r').replace(/\n/g,'\\n')+'"';}
  function write(ok,message){if(report.exists)return;if(!report.open('w'))return;report.encoding='UTF-8';report.write('{"ok":'+(ok?'true':'false')+',"version":'+quote(app.version)+',"message":'+quote(message)+',"log":'+quote(log.join('; '))+'}');report.close();}
  function same(a,b){return new File(a).fsName.toLowerCase()===new File(b).fsName.toLowerCase();}

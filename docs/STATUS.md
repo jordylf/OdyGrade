@@ -1,9 +1,12 @@
 # OdyGrade implementation status
 
-Latest (Claude, 2026-11-20): panel "Apply to selected clips" live-verified in Premiere
+Latest (Claude, 2026-11-21): dev.9 applies the reference grade in Premiere with no
+click (render-time read of this computer's pending grade, live-verified identical to
+manual Load); "Load native grade..." still needed to carry it to another machine.
+Native builds use the static CRT (host msvcp140 14.23 crashed dev.8). AE on dev.9: harness only.
+Earlier (2026-11-20): panel "Apply to selected clips" live-verified in Premiere
 and AE. dev.6 auto-embeds the reference grade in AE (no click, survives save);
-Premiere still needs one "Load native grade..." click (no scripted param callback);
-that click is live-verified, including save/reopen persistence.
+the Premiere manual Load click is live-verified, including save/reopen persistence.
 Media Encoder export from Premiere renders the effect identically (live-verified).
 AE 32 bpc works (effect runs at 16 bpc, HDR >1.0 clipped); Premiere 32f unproven.
 AE undo/redo of apply verified (one step, embedded grade restored); Premiere undo untested.
@@ -54,7 +57,7 @@ Original implementation and look library; no proprietary Pocket binaries/assets 
 ## Not complete: do not claim Pocket parity or native timeline integration
 - Live host panel load, capture, and export must be tested in Adobe.
 - Timeline apply sets effect controls automatically; the reference snapshot embeds
-  automatically in AE only; Premiere needs a "Load native grade..." click. Premiere undo not verified.
+  in AE; Premiere reads it from the local pending store until "Load native grade..." embeds it. Premiere undo not verified.
 - Adobe-native real-time 16/32-bit timeline rendering and host keyframes. The portable core
   handles high-precision buffers, but is not an Adobe effect and is not performance-qualified.
 - Other camera/LOG encodings, automatic metadata/range detection, ICC, complete

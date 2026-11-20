@@ -36,9 +36,11 @@ var OdyHost = {
       var dir=new Folder(Folder.userData.fsName+"/OdyGrade"),pending=new Folder(dir.fsName+"/pending"),n=0,linked=0,i,j,fx;
       if(!dir.exists&&!dir.create())throw Error("Cannot create per-user OdyGrade folder.");
       if(!pending.exists&&!pending.create())throw Error("Cannot create OdyGrade pending folder.");
-      var old=pending.getFiles("*.odyn");for(i=0;i<old.length;i++)old[i].remove();  // only our own pending grades
-      // "Grade link" token: the effect embeds pending/<token>.odyn on change and acks with -token.
-      var token=1+Math.floor(Math.random()*29999),text=decodeURIComponent(encoded);
+      // "Grade link" token: AE embeds pending/<token>.odyn on change and acks with -token; Premiere
+      // (no scripted callback) reads it at render time, so files are kept and tokens never reused.
+      var token=0,text=decodeURIComponent(encoded);
+      for(i=0;i<200&&!token;i++){token=1+Math.floor(Math.random()*29999);if(new File(pending.fsName+"/"+token+".odyn").exists)token=0;}
+      if(!token)throw Error("OdyGrade pending grade store is full.");
       var files=[new File(dir.fsName+"/last-applied.odyn"),new File(pending.fsName+"/"+token+".odyn")],grade=files[0];
       for(i=0;i<files.length;i++){files[i].encoding="UTF-8";if(!files[i].open("w"))throw Error("Cannot write native grade file.");
         try{if(!files[i].write(text))throw Error("Cannot write native grade file.");}finally{files[i].close();}}
