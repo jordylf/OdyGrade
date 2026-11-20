@@ -2,7 +2,7 @@
 Updated: 2026-11-21 (Asia/Jakarta)
 
 
-## Latest checkpoint — Grain format + Film Format (Claude, 2026-11-21, not yet installed)
+## Latest checkpoint — Grain format + Film Format (Claude, 2026-11-21, dev.11 installed, AE verified)
 
 - User asked for Pocket Grade feature parity (own implementation; no Sotoi looks, names
   or UI copied). Added, mirrored equation-for-equation in src/film.js and core.cpp:
@@ -23,7 +23,10 @@ Updated: 2026-11-21 (Asia/Jakarta)
 - Examples: work/adobe-host/runs/film-20261121-041013 (overview.jpg, detail.jpg,
   super8-preview.mp4). Perf: core ~1.0 s per 1080x1920 frame for colour alone; new film
   adds ~0.2-0.3 s. Core speed (single-threaded) is the real bottleneck, not these features.
-- Not done: install as dev.11 + live AE/Premiere check of the new params.
+- Installed as 0.4.0-dev.11-film (sha a3fb5bb4...). AE 2024 live (scratch untitled project,
+  nothing saved/closed): params read back correctly; frame 0 == offline still-native (mean
+  0.002/255, max 0); frames 0/10/30 differ (weave/flicker/dust per frame). Evidence:
+  runs/film-20261121-041013/ae-live (compare.jpg). Not done: Premiere live check.
 
 ## Earlier checkpoint — chroma tail compression / snapshot v3 (Claude, 2026-11-21)
 
