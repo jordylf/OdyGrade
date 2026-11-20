@@ -99,7 +99,11 @@
       return {a:z.a/z.n,b:z.b/z.n,sa:Math.sqrt(Math.max(0,z.aa/z.n-Math.pow(z.a/z.n,2))),
         sb:Math.sqrt(Math.max(0,z.bb/z.n-Math.pow(z.b/z.n,2)))};
     }
-    return {quantiles:qs,zones:zones.map(function(z){return finish(z.n>=8?z:all);}),count:samples.length};
+    // Chroma tail (p90, p99): zone std devs follow the bulk, so a muted reference
+    // still left the most saturated source colours vivid. See createTransform.
+    var ch=samples.map(function(c){return Math.hypot(c[1],c[2]);}).sort(function(a,b){return a-b;});
+    var cq=[0.9,0.99].map(function(p){return ch[Math.min(ch.length-1,Math.floor(p*ch.length))];});
+    return {quantiles:qs,zones:zones.map(function(z){return finish(z.n>=8?z:all);}),chroma:cq,count:samples.length};
   }
   function distribution(image,o){return summarize(samplesFor(image,o,60000));}
   function fitDistributions(a,b,o){
@@ -140,7 +144,9 @@
       if(!d||!Array.isArray(d.quantiles)||d.quantiles.length!==9||!Array.isArray(d.zones)||d.zones.length!==3)throw Error("Invalid grade distribution");
       d.quantiles.forEach(function(v,i){if(!Number.isFinite(v)||v<0||v>4||(i&&v<d.quantiles[i-1]))throw Error("Invalid quantiles");});
       d.zones.forEach(function(z){["a","b","sa","sb"].forEach(function(k){if(!Number.isFinite(z[k])||Math.abs(z[k])>4)throw Error("Invalid palette");});if(z.sa<0||z.sb<0)throw Error("Invalid palette spread");});
+      if(d.chroma!==undefined&&(!Array.isArray(d.chroma)||d.chroma.length!==2||!d.chroma.every(function(v){return Number.isFinite(v)&&v>=0&&v<=1;})||d.chroma[1]<d.chroma[0]))throw Error("Invalid chroma tail");
     });
+    if(!model.source.chroma!==!model.reference.chroma)throw Error("Chroma tail must be on both distributions");
     return model;
   }
   function toneMap(x,a,b){
@@ -164,6 +170,18 @@
     return smooth(0.2,0.45,lab[0])*(1-smooth(0.85,0.98,lab[0]))*
       Math.exp(-Math.pow((hue-0.8)/0.45,2))*smooth(0.015,0.06,chroma);
   }
+  // Compress-only chroma tail match: pixels whose ORIGINAL chroma lies above the source
+  // p90 are pulled toward the reference's quantile-equivalent chroma (p90->p90,
+  // p99->p99, extrapolated), blended in smoothly from p90 to p99. Models without
+  // chroma statistics (older recipes) are unchanged.
+  function chromaTail(c,base,s,r,amount){
+    if(!s||!r||amount<=0)return c;
+    var c0=Math.hypot(base[1],base[2]),w=smooth(s[0],Math.max(s[0]+0.0001,s[1]),c0)*amount;
+    if(w<=0)return c;
+    var target=r[0]+(c0-s[0])*clamp((r[1]-r[0])/Math.max(0.0001,s[1]-s[0])),c1=Math.hypot(c[1],c[2]);
+    if(c1<=target)return c;
+    var k=mix(1,target/c1,w);return [c[0],c[1]*k,c[2]*k];
+  }
   function createTransform(model,options){
     var o=settings(options);
     if(model)validateModel(model);
@@ -181,6 +199,7 @@
         c[0]=mix(c[0],toneMap(c[0],source.quantiles,ref.quantiles),o.strength);
         c[1]=mix(c[1],clamp((c[1]-sc.a)*ar+rc.a,-0.3,0.3),o.strength*protect);
         c[2]=mix(c[2],clamp((c[2]-sc.b)*br+rc.b,-0.3,0.3),o.strength*protect);
+        c=chromaTail(c,base,source.chroma,ref.chroma,o.strength*protect);
       }
       var t=smooth(0.15,0.85,c[0]),sat=o.saturation*look.sat;
       c[1]=c[1]*sat+mix(look.shadow[0],look.highlight[0],t);

@@ -2,7 +2,22 @@
 Updated: 2026-11-21 (Asia/Jakarta)
 
 
-## Latest checkpoint — Premiere grade without the Load click (Claude, 2026-11-21)
+## Latest checkpoint — chroma tail compression / snapshot v3 (Claude, 2026-11-21)
+
+- Problem: saturated source colours (plaid blues/reds) stayed neon against a muted
+  reference: zone a/b std transfer follows the bulk, so the OKLab chroma tail survived
+  (IMG_1568 vs reference: graded p99 0.125 / max 0.218 vs ref 0.103 / 0.124).
+- Fix: fit stores chroma [p90,p99] per distribution; engine.js chromaTail / core.cpp
+  chroma_tail compress (never boost) chroma above source p90 toward the reference
+  p90..p99 map, weighted by strength*skin-protect. Models without chroma are unchanged.
+- Native snapshot is now ODYGRADE_NATIVE 3 (+2 numbers per distribution, -1 -1 = none);
+  reader keeps v1/v2. Installed dev.9 .aex CANNOT read v3: install the new build before
+  applying new grades from the panel (already-embedded v2 grades keep working).
+- Result (runs/chroma-20261121-033902, same settings, offline still-native):
+  p50 0.028 p90 0.066 unchanged; p99 0.125 -> 0.104; max 0.218 -> 0.146. compare.jpg.
+- Tests: npm test 56/56 (fitted-model JS<->native parity covers the new step), harness PASS.
+
+## Earlier checkpoint — Premiere grade without the Load click (Claude, 2026-11-21)
 
 - Premiere sends no param callback for scripted setValue, so the effect now resolves a
   positive "Grade link" token at RENDER time from %APPDATA%/OdyGrade/pending/<token>.odyn

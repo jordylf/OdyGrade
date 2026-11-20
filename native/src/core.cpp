@@ -85,6 +85,18 @@ void check_distribution(const Distribution& d) {
            std::abs(z.a)>4||std::abs(z.b)>4||z.sa<0||z.sb<0||z.sa>4||z.sb>4)
             throw std::invalid_argument("Invalid model palette");
     }
+    if(d.has_chroma&&(!std::isfinite(d.chroma[0])||!std::isfinite(d.chroma[1])||d.chroma[0]<0||d.chroma[1]>1||d.chroma[1]<d.chroma[0]))
+        throw std::invalid_argument("Invalid model chroma tail");
+}
+// Mirrors engine.js chromaTail: compress-only pull of the source chroma tail toward the reference.
+Color chroma_tail(Color c,Color base,const Distribution& s,const Distribution& r,double amount) {
+    if(!s.has_chroma||!r.has_chroma||amount<=0)return c;
+    const auto c0=std::hypot(base[1],base[2]),w=smooth(s.chroma[0],std::max(s.chroma[0]+.0001,s.chroma[1]),c0)*amount;
+    if(w<=0)return c;
+    const auto target=r.chroma[0]+(c0-s.chroma[0])*clamp((r.chroma[1]-r.chroma[0])/std::max(.0001,s.chroma[1]-s.chroma[0]));
+    const auto c1=std::hypot(c[1],c[2]);
+    if(c1<=target)return c;
+    const auto k=mix(1,target/c1,w);return {c[0],c[1]*k,c[2]*k};
 }
 Zone zone_color(double x,const Distribution& d,double mid) {
     const auto low=x<mid;
@@ -117,6 +129,7 @@ Color apply_color(Color rgb,const Recipe& r,const Look& look,const InputProfile&
         c[0]=mix(c[0],tone_map(c[0],source,ref),s.strength);
         c[1]=mix(c[1],clamp((c[1]-sc.a)*ar+rc.a,-.3,.3),s.strength*protect);
         c[2]=mix(c[2],clamp((c[2]-sc.b)*br+rc.b,-.3,.3),s.strength*protect);
+        c=chroma_tail(c,base,source,ref,s.strength*protect);
     }
     const auto t=smooth(.15,.85,c[0]),sat=s.saturation*look.saturation;
     c[1]=c[1]*sat+mix(look.shadow[0],look.highlight[0],t);

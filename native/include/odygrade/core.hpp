@@ -10,6 +10,8 @@ struct Zone { double a{}, b{}, sa{}, sb{}; };
 struct Distribution {
     std::array<double, 9> quantiles{};
     std::array<Zone, 3> zones{};
+    std::array<double, 2> chroma{};  // OKLab chroma p90, p99 (snapshot v3)
+    bool has_chroma{};
 };
 struct Correction { double exposure{}, temperature{}, tint{}; };
 struct Model {

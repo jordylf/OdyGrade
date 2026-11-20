@@ -1,6 +1,8 @@
 # OdyGrade implementation status
 
-Latest (Claude, 2026-11-21): dev.9 applies the reference grade in Premiere with no
+Latest (Claude, 2026-11-21): reference fit now compresses the saturated chroma tail
+(snapshot v3; real clip p99 chroma 0.125 -> 0.104 vs ref 0.103); needs a new .aex install.
+Also 2026-11-21: dev.9 applies the reference grade in Premiere with no
 click (render-time read of this computer's pending grade, live-verified identical to
 manual Load); "Load native grade..." still needed to carry it to another machine.
 Native builds use the static CRT (host msvcp140 14.23 crashed dev.8). AE on dev.9 live: identical to dev.6.
@@ -51,6 +53,7 @@ Original implementation and look library; no proprietary Pocket binaries/assets 
 - Explicit source profiles: sRGB, display Rec.709/gamma 2.4, Sony S-Log3/S-Gamut3.Cine,
   Panasonic V-Log/V-Gamut. Camera decoding/gamut conversion plus our own SDR view.
 - JSON/native snapshot v2 stores input profiles; v1 remains readable as sRGB.
+- Native snapshot v3 adds the reference chroma tail (p90/p99); v1/v2 still readable.
 - Offline video-native runs the full implemented analytic color/film stack on
   RGBA16 streams, preserving CFR/VFR timing, alpha and relative PCM24 audio offsets.
 - Verified color metadata, rotation/SAR handling, cancellable/supervised helpers,

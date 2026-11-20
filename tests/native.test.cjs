@@ -24,7 +24,7 @@ function success(result){assert.equal(result.status,0,result.stderr?.toString())
 function difference(a,b){let sum=0,max=0;assert.equal(a.length,b.length);for(let i=0;i<a.length;i++){
  const delta=Math.abs(a[i]-b[i]);sum+=delta;max=Math.max(max,delta);}return {mean:sum/a.length,max};}
 test('native snapshot canonicalizes valid recipes and rejects invalid JSON state',()=>{
- const r=recipe();assert.match(N.compile(r),/^ODYGRADE_NATIVE 2\n/);
+ const r=recipe();assert.match(N.compile(r),/^ODYGRADE_NATIVE 3\n/);
  r.settings.look='not-a-look';assert.throws(()=>N.compile(r),/look/i);
 });
 test('native color output matches JS across all ten looks and fitted correction',{skip:!available},()=>{
@@ -64,7 +64,7 @@ test('native input profiles agree with JS on decoded and matched float colors',{
 test('native reader retains v1 snapshot compatibility',{skip:!available},()=>{
  const source=image(4,4),r=recipe(),dir=fs.mkdtempSync(path.join(os.tmpdir(),'odygrade-native-legacy-'));
  try{
-  const legacy=N.compile(r).replace('ODYGRADE_NATIVE 2','ODYGRADE_NATIVE 1').replace(/^profile .*\n/m,'');
+  const legacy=N.compile(r).replace('ODYGRADE_NATIVE 3','ODYGRADE_NATIVE 1').replace(/^profile .*\n/m,'');
   const file=path.join(dir,'legacy.odyn');fs.writeFileSync(file,legacy);
   const old=cp.spawnSync(exe,[file,'4','4','rgba8','rgba8'],{input:Buffer.from(source.data),windowsHide:true});
   assert.deepEqual(success(old),success(render(r,source.data,4,4)));
