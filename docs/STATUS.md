@@ -1,6 +1,8 @@
 # OdyGrade implementation status
 
-Latest (Claude, 2026-11-21): reference fit now compresses the saturated chroma tail
+Latest (Claude, 2026-11-21): Grain format (8/16/35/65 mm + ISO) and Film format (weave, flicker,
+dust, perforations) added, snapshot v4, tests pass; not installed or host-tested yet.
+Earlier 2026-11-21: reference fit now compresses the saturated chroma tail
 (snapshot v3; real clip p99 chroma 0.125 -> 0.104 vs ref 0.103); dev.10 installed; AE live == offline (max 1/255), Premiere live mean 0.43/255 from offline, chroma p99 0.104.
 Also 2026-11-21: dev.9 applies the reference grade in Premiere with no
 click (render-time read of this computer's pending grade, live-verified identical to
@@ -70,7 +72,7 @@ Original implementation and look library; no proprietary Pocket binaries/assets 
 - Semantic face/skin segmentation; current protection is a hue heuristic.
 - Batch shot balancing and scene-cut detection. Shot pooling analyzes one manually
   selected range; the browser accepts manually selected stills without timestamps.
-- Original measured stock emulation, gate weave, flicker, dust/perforations.
+- Original measured stock emulation (film stock presets not built yet).
 - macOS installers, signing, clean-machine validation, licensing/updates.
 - Resolve adapter / editable node generation.
 

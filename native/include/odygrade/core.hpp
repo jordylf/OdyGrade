@@ -28,6 +28,9 @@ struct Settings {
 };
 struct Film {
     double grain{}, bloom{}, halation{}, vignette{}, bleach{}, ratio{};
+    // Mirrors src/film.js: gauge 0 = classic pixel grain, else 8/16/35/65 mm; format 0 = off,
+    // 1..6 = Regular 8, Super 8, 16 mm, Super 16, 35 mm, IMAX. perfs is 0 or 1.
+    double gauge{}, iso{200}, format{}, weave{}, flicker{}, dust{}, perfs{};
 };
 struct Recipe { Model model{}; Settings settings{}; Film film{}; };
 

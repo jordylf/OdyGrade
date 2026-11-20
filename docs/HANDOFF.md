@@ -2,7 +2,30 @@
 Updated: 2026-11-21 (Asia/Jakarta)
 
 
-## Latest checkpoint — chroma tail compression / snapshot v3 (Claude, 2026-11-21)
+## Latest checkpoint — Grain format + Film Format (Claude, 2026-11-21, not yet installed)
+
+- User asked for Pocket Grade feature parity (own implementation; no Sotoi looks, names
+  or UI copied). Added, mirrored equation-for-equation in src/film.js and core.cpp:
+  - Grain format Classic (old per-pixel grain, default, unchanged) / 8 / 16 / 35 / 65 mm
+    + Grain ISO 50-500: two-octave value noise on a rotated lattice, size from gauge and
+    ISO, midtone-weighted, small per-channel colour grain.
+  - Film format Off / Regular 8 / Super 8 / 16 mm / Super 16 / 35 mm / IMAX with Gate
+    weave, Flicker, Dust (specks + occasional scratch) and Perforations (sprocket holes;
+    none for IMAX). Per-frame deterministic from the frame index; sizes follow the short
+    frame side so vertical video looks right.
+- Native snapshot is now ODYGRADE_NATIVE 4 (7 more film numbers); reader keeps v1-v3.
+- Adobe params appended AFTER "Grade link" (keeps saved-project indices): Grain format,
+  Grain ISO, Film format, Gate weave, Flicker, Dust, Perforations (popups; Perforations
+  is an Off/On popup to avoid checkbox scripting differences). Panel has matching
+  controls and effectParams; CLI color-only "video" now rejects non-default film values.
+- Tests 57/57 incl. JS<->native parity for 5 film combos x frames 0/5/41; harness checks
+  the new params render, reject out-of-range, and restore identical output when off.
+- Examples: work/adobe-host/runs/film-20261121-041013 (overview.jpg, detail.jpg,
+  super8-preview.mp4). Perf: core ~1.0 s per 1080x1920 frame for colour alone; new film
+  adds ~0.2-0.3 s. Core speed (single-threaded) is the real bottleneck, not these features.
+- Not done: install as dev.11 + live AE/Premiere check of the new params.
+
+## Earlier checkpoint — chroma tail compression / snapshot v3 (Claude, 2026-11-21)
 
 - Problem: saturated source colours (plaid blues/reds) stayed neon against a muted
   reference: zone a/b std transfer follows the bulk, so the OKLab chroma tail survived

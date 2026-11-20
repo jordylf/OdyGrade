@@ -41,6 +41,14 @@ int main(int argc,char** argv){
   odygrade::Recipe r;r.settings.look="amber";
   odygrade::render({source.data(),w,h,w*4,odygrade::PixelFormat::ARGB8,odygrade::AlphaMode::Premultiplied},{expected.data(),w,h,w*4,odygrade::PixelFormat::ARGB8,odygrade::AlphaMode::Premultiplied},r);
   for(std::size_t i=0;i<dest.size()*4;++i)require(std::abs(reinterpret_cast<unsigned char*>(expected.data())[i]-reinterpret_cast<unsigned char*>(dest.data())[i])<=1,"look callback differential");
+  {// Appended grain/format params reach the core and default back to identical output.
+   const auto lookOnly=dest;params[GrainGauge].u.pd.value=3;params[Grain].u.fs_d.value=50;params[GrainIso].u.fs_d.value=400;
+   params[FilmFormat].u.pd.value=2;params[Weave].u.fs_d.value=100;params[Flicker].u.fs_d.value=100;params[Dust].u.fs_d.value=100;params[Perfs].u.pd.value=2;
+   require(EffectMain(PF_Cmd_RENDER,&in,&out,p,&world,nullptr)==0&&std::memcmp(lookOnly.data(),dest.data(),dest.size()*4)!=0,"grain/format params must render");
+   params[FilmFormat].u.pd.value=8;require(EffectMain(PF_Cmd_RENDER,&in,&out,p,&world,nullptr)!=0,"out-of-range film format must fail");
+   params[GrainGauge].u.pd.value=1;params[Grain].u.fs_d.value=0;params[GrainIso].u.fs_d.value=200;params[FilmFormat].u.pd.value=1;
+   params[Weave].u.fs_d.value=params[Flicker].u.fs_d.value=params[Dust].u.fs_d.value=0;params[Perfs].u.pd.value=1;
+   require(EffectMain(PF_Cmd_RENDER,&in,&out,p,&world,nullptr)==0&&std::memcmp(lookOnly.data(),dest.data(),dest.size()*4)==0,"film format off restores output");}
   std::ifstream file(std::filesystem::u8path(argv[1]),std::ios::binary);const std::string snapshot((std::istreambuf_iterator<char>(file)),{});require(!snapshot.empty(),"fixture missing");
   require(set_snapshot(&in,p,snapshot)==0,"load snapshot");
   PF_ArbParamsExtra arb{};arb.id=Stored;arb.which_function=PF_Arbitrary_FLAT_SIZE_FUNC;A_u_long flatSize{};arb.u.flat_size_func_params={nullptr,params[Stored].u.arb_d.value,&flatSize};

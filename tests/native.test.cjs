@@ -24,7 +24,7 @@ function success(result){assert.equal(result.status,0,result.stderr?.toString())
 function difference(a,b){let sum=0,max=0;assert.equal(a.length,b.length);for(let i=0;i<a.length;i++){
  const delta=Math.abs(a[i]-b[i]);sum+=delta;max=Math.max(max,delta);}return {mean:sum/a.length,max};}
 test('native snapshot canonicalizes valid recipes and rejects invalid JSON state',()=>{
- const r=recipe();assert.match(N.compile(r),/^ODYGRADE_NATIVE 3\n/);
+ const r=recipe();assert.match(N.compile(r),/^ODYGRADE_NATIVE 4\n/);
  r.settings.look='not-a-look';assert.throws(()=>N.compile(r),/look/i);
 });
 test('native color output matches JS across all ten looks and fitted correction',{skip:!available},()=>{
@@ -64,7 +64,7 @@ test('native input profiles agree with JS on decoded and matched float colors',{
 test('native reader retains v1 snapshot compatibility',{skip:!available},()=>{
  const source=image(4,4),r=recipe(),dir=fs.mkdtempSync(path.join(os.tmpdir(),'odygrade-native-legacy-'));
  try{
-  const legacy=N.compile(r).replace('ODYGRADE_NATIVE 3','ODYGRADE_NATIVE 1').replace(/^profile .*\n/m,'');
+  const legacy=N.compile(r).replace('ODYGRADE_NATIVE 4','ODYGRADE_NATIVE 1').replace(/^profile .*\n/m,'').replace(/^(film(?: \S+){6})(?: \S+){7}$/m,'$1');
   const file=path.join(dir,'legacy.odyn');fs.writeFileSync(file,legacy);
   const old=cp.spawnSync(exe,[file,'4','4','rgba8','rgba8'],{input:Buffer.from(source.data),windowsHide:true});
   assert.deepEqual(success(old),success(render(r,source.data,4,4)));
@@ -81,6 +81,16 @@ test('native film matches JS still within intermediate quantization tolerance',{
  const actual=success(render(recipe(null,settings,film),source.data,source.width,source.height));
  const expected=F.apply(E.render(source,null,settings),film).data,error=difference(actual,expected);
  assert.ok(error.mean<.5,JSON.stringify(error));assert.ok(error.max<=2,JSON.stringify(error));
+});
+test('native gauge grain and film format match JS on several frames',{skip:!available},()=>{
+ const source=image(160,120),settings={look:'amber'};
+ for(const film of [{grain:.5,gauge:8,iso:400},{grain:.4,gauge:65,iso:50,vignette:.2},
+  {grain:.3,gauge:16,format:2,weave:1,flicker:1,dust:1,perfs:1},{format:5,perfs:1,dust:.6,ratio:1.85},{format:3,weave:.7,perfs:1,bloom:.4}])
+  for(const frame of [0,5,41]){
+   const actual=success(render(recipe(null,settings,film),source.data,source.width,source.height,'rgba8','rgba8',frame));
+   const expected=F.apply(E.render(source,null,settings),film,frame).data,error=difference(actual,expected);
+   assert.ok(error.mean<.5&&error.max<=3,JSON.stringify({film,frame,error}));
+  }
 });
 test('native stream supports consecutive frames and repeatable temporal grain',{skip:!available},()=>{
  const source=image(16,12),r=recipe(null,{}, {grain:.5}),frame=Buffer.from(source.data);

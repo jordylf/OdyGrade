@@ -27,6 +27,7 @@ FILE* trace_file(){
 void trace_text(int cmd,const char* what){if(auto f=trace_file()){std::fprintf(f,"cmd=%d error: %s\n",cmd,what);std::fflush(f);}}
 constexpr const char* Looks[]={"neutral","amber","nocturne","evergreen","rose","silver","coast","earth","cyan","velvet"};
 constexpr double Ratios[]={0,1.33,1.85,2.39};
+constexpr double Gauges[]={0,8,16,35,65};
 std::string text(PF_InData* in_data,PF_Handle h){
  if(!h)return {};
  const auto n=PF_GET_HANDLE_SIZE(h);
@@ -83,6 +84,12 @@ PF_Err setup(PF_InData* in_data,PF_OutData* out_data){
  // Panel apply sets this to a positive token; we embed pending/<token>.odyn and flip it
  // negative as the success acknowledgement the panel reads back.
  AEFX_CLR_STRUCT(def);def.flags=PF_ParamFlag_SUPERVISE;PF_ADD_SLIDER("Grade link",-30000,30000,-30000,30000,0,Link);
+ AEFX_CLR_STRUCT(def);PF_ADD_POPUP("Grain format",5,1,"Classic|8 mm|16 mm|35 mm|65 mm",GrainGauge);
+ AEFX_CLR_STRUCT(def);PF_ADD_FLOAT_SLIDERX("Grain ISO",50,500,50,500,200,PF_Precision_INTEGER,0,0,GrainIso);
+ AEFX_CLR_STRUCT(def);PF_ADD_POPUP("Film format",7,1,"Off|Regular 8|Super 8|16 mm|Super 16|35 mm|IMAX",FilmFormat);
+ const Slider format[]={{"Gate weave",0,100,0,Weave},{"Flicker",0,100,0,Flicker},{"Dust",0,100,0,Dust}};
+ for(const auto& s:format){AEFX_CLR_STRUCT(def);PF_ADD_FLOAT_SLIDERX(s.label,s.lo,s.hi,s.lo,s.hi,s.initial,PF_Precision_HUNDREDTHS,0,0,s.id);}
+ AEFX_CLR_STRUCT(def);PF_ADD_POPUP("Perforations",2,1,"Off|On",Perfs);
  trace("setup done params=%d",Count);
  out_data->num_params=Count;return PF_Err_NONE;
 }
@@ -150,6 +157,10 @@ PF_Err render(PF_InData* in_data,PF_ParamDef* p[],PF_LayerDef* output){
  odygrade::Recipe finishing;
  finishing.settings.exposure=value(p,Exposure);finishing.settings.temperature=value(p,Temperature)/100;finishing.settings.tint=value(p,Tint)/100;
  finishing.film={value(p,Grain)/100,value(p,Bloom)/100,value(p,Halation)/100,value(p,Vignette)/100,value(p,Bleach)/100,Ratios[ratio]};
+ const auto gauge=p[GrainGauge]->u.pd.value-1,format=p[FilmFormat]->u.pd.value-1,perfs=p[Perfs]->u.pd.value-1;
+ if(gauge<0||gauge>=5||format<0||format>=7||perfs<0||perfs>1)throw std::invalid_argument("Invalid grain or film format");
+ auto& f=finishing.film;f.gauge=Gauges[gauge];f.iso=value(p,GrainIso);f.format=format;
+ f.weave=value(p,Weave)/100;f.flicker=value(p,Flicker)/100;f.dust=value(p,Dust)/100;f.perfs=perfs;
  odygrade::validate(base);odygrade::validate(finishing);
  PremierePixels pixels(in_data);const auto inputFormat=pixels.format(&input),outputFormat=pixels.format(output);
  trace("render fmt in=%d out=%d",static_cast<int>(inputFormat),static_cast<int>(outputFormat));  // 1 BGRA8, 8 BGRA32F, 2 ARGB8, 6 ARGB16AE
@@ -202,6 +213,10 @@ PF_Err set_snapshot(PF_InData* in_data,PF_ParamDef* p[],const std::string& snaps
  p[Look]->u.pd.value=1;for(int i=0;i<10;++i)if(s.look==Looks[i])p[Look]->u.pd.value=static_cast<A_short>(i+1);
  p[Ratio]->u.pd.value=1;for(int i=0;i<4;++i)if(f.ratio==Ratios[i])p[Ratio]->u.pd.value=static_cast<A_short>(i+1);
  p[Look]->uu.change_flags|=PF_ChangeFlag_CHANGED_VALUE;p[Ratio]->uu.change_flags|=PF_ChangeFlag_CHANGED_VALUE;
+ change(GrainIso,f.iso);change(Weave,f.weave*100);change(Flicker,f.flicker*100);change(Dust,f.dust*100);
+ const auto popup=[&](int id,int index){p[id]->u.pd.value=static_cast<A_short>(index+1);p[id]->uu.change_flags|=PF_ChangeFlag_CHANGED_VALUE;};
+ int gauge=0;for(int i=0;i<5;++i)if(f.gauge==Gauges[i])gauge=i;
+ popup(GrainGauge,gauge);popup(FilmFormat,static_cast<int>(f.format));popup(Perfs,static_cast<int>(f.perfs));
  return PF_Err_NONE;
 }
 } // namespace odygrade_adobe

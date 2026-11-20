@@ -23,7 +23,7 @@ Recipe read_recipe(const std::string& text) {
     if(text.size()>65536)throw std::invalid_argument("Native recipe exceeds 64 KB");
     std::istringstream in(text);in.imbue(std::locale::classic());
     token(in,"ODYGRADE_NATIVE");const auto version=number(in);
-    if(version!=1&&version!=2&&version!=3)throw std::invalid_argument("Unsupported native recipe version");
+    if(version!=1&&version!=2&&version!=3&&version!=4)throw std::invalid_argument("Unsupported native recipe version");
     Recipe r;auto& s=r.settings;auto& f=r.film;
     token(in,"settings");s.strength=number(in);s.exposure=number(in);s.temperature=number(in);s.tint=number(in);
     s.contrast=number(in);s.saturation=number(in);s.preserve_skin=number(in);s.fade=number(in);s.shoulder=number(in);
@@ -39,6 +39,7 @@ Recipe read_recipe(const std::string& text) {
     }
     token(in,"film");f.grain=number(in);f.bloom=number(in);f.halation=number(in);
     f.vignette=number(in);f.bleach=number(in);f.ratio=number(in);
+    if(version>=4){f.gauge=number(in);f.iso=number(in);f.format=number(in);f.weave=number(in);f.flicker=number(in);f.dust=number(in);f.perfs=number(in);}
     token(in,"end");std::string extra;if(in>>extra)throw std::invalid_argument("Unexpected trailing recipe data");
     validate(r);return r;
 }

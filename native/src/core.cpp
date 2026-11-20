@@ -194,6 +194,78 @@ std::vector<float> blur(const std::vector<float>& in,int w,int h,int radius) {
     }
     return out;
 }
+// Film gauge / format tables and helpers: equation-for-equation mirror of src/film.js.
+struct Gauge { double size, amplitude; };
+const Gauge* gauge_for(double g) {
+    static const Gauge g8{4,1.3},g16{2.4,1.15},g35{1.4,1},g65{.9,.8};
+    return g==8?&g8:g==16?&g16:g==35?&g35:g==65?&g65:nullptr;
+}
+struct Format { double weave,flicker,dust,speck,perfs,phase,perf_h,perf_w,both; };
+constexpr Format Formats[]={{},
+    {.006,1,1.6,2.2,1,0,.18,.12,0},{.005,.9,1.4,2,1,.5,.16,.11,0},{.0035,.7,1.2,1.6,1,0,.17,.12,1},
+    {.003,.6,1.1,1.4,1,0,.17,.12,0},{.0015,.4,.8,1,4,.125,.1,.08,1},{.0008,.25,.5,.8,0,0,0,0,0}};
+double fract(double v) { return v-std::floor(v); }
+double hash(double a,double b) { return fract(std::sin(a*12.9898+b*78.233)*43758.5453); }
+double value_noise(double x,double y,double seed) {
+    const auto ix=std::floor(x),iy=std::floor(y);auto u=x-ix,v=y-iy;u=u*u*(3-2*u);v=v*v*(3-2*v);
+    const auto a=hash(ix+seed,iy),b=hash(ix+1+seed,iy),c=hash(ix+seed,iy+1),d=hash(ix+1+seed,iy+1);
+    return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v-.5;
+}
+double grain_noise(double x,double y,double cell,double seed) {  // film.js grainNoise
+    const auto u=(x*.8+y*.6)/cell,v=(y*.8-x*.6)/cell;
+    return .7*value_noise(u,v,seed)+.45*value_noise(u*2.1+17.3,v*2.1+5.1,seed);
+}
+struct FormatState { double dx{},dy{},gain{1};std::vector<float> mask;const Format* f{}; };
+FormatState format_pass(const Film& o,int w,int h,std::uint64_t frame) {
+    FormatState s;if(o.format<1)return s;
+    const auto& f=Formats[static_cast<int>(o.format)];s.f=&f;const auto n=static_cast<double>(frame%1048576);
+    const double u=std::min(w,h);  // sizes follow the short side (vertical video), as in film.js
+    if(o.weave){s.dx=o.weave*f.weave*u*(hash(n,2.5)-.5)*1.2;s.dy=o.weave*f.weave*u*(hash(n,3.5)-.5)*2;}
+    if(o.flicker)s.gain=1+o.flicker*f.flicker*.12*(hash(n,1.5)-.5)*2;
+    if(o.dust) {
+        s.mask.assign(static_cast<std::size_t>(w)*h,0.f);const auto scale=u/1080;
+        const auto count=static_cast<int>(std::floor(o.dust*30*f.dust+hash(n,4.5)*o.dust*10));
+        for(int k=0;k<count;++k) {
+            const auto key=n*7+k,cx=hash(key,5.5)*w,cy=hash(key,6.5)*h,r=(.6+2.4*std::pow(hash(key,7.5),2))*scale*f.speck;
+            const auto sign=hash(key,8.5)<.7?1.0:-1.0,strength=.5+.5*hash(key,9.5);
+            for(int y=std::max(0,static_cast<int>(std::floor(cy-r-1)));y<=std::min(h-1,static_cast<int>(std::ceil(cy+r+1)));++y)
+                for(int x=std::max(0,static_cast<int>(std::floor(cx-r-1)));x<=std::min(w-1,static_cast<int>(std::ceil(cx+r+1)));++x) {
+                    const auto a=clamp(r+.5-std::hypot(x+.5-cx,y+.5-cy))*strength*sign;auto& m=s.mask[static_cast<std::size_t>(y)*w+x];
+                    m=static_cast<float>(std::clamp(m+a,-1.0,1.0));
+                }
+        }
+        if(hash(n,10.5)<o.dust*.35) {
+            const auto sx=hash(n,11.5)*w,sw=std::max(1.0,scale*1.2);
+            for(int y=0;y<h;++y)for(int x=std::max(0,static_cast<int>(std::floor(sx-sw-1)));x<=std::min(w-1,static_cast<int>(std::ceil(sx+sw+1)));++x) {
+                auto& m=s.mask[static_cast<std::size_t>(y)*w+x];m=static_cast<float>(std::min(1.0,m+clamp(sw+.5-std::abs(x+.5-sx))*.35));
+            }
+        }
+    }
+    return s;
+}
+double perforation(const Format& f,int x,int y,int w,int h) {
+    if(!f.perfs)return 0;
+    const double u=std::min(w,h);const auto ph=f.perf_h*u,pw=f.perf_w*u,r=.25*std::min(ph,pw),inset=.012*u,px=x+.5,py=y+.5;
+    const auto ex=f.both?std::min(px,w-px):px;if(ex>inset+pw+1)return 0;
+    const auto qx=std::abs(ex-inset-pw/2)-pw/2+r,pitch=h/f.perfs;double best=0;
+    for(int j=-1;j<=static_cast<int>(f.perfs);++j) {
+        const auto qy=std::abs(py-(j+f.phase)*pitch)-ph/2+r;
+        const auto d=std::hypot(std::max(qx,0.0),std::max(qy,0.0))+std::min(std::max(qx,qy),0.0)-r;
+        best=std::max(best,clamp(.5-d));
+    }
+    return best;
+}
+std::vector<std::array<double,4>> shift(const std::vector<std::array<double,4>>& d,int w,int h,double dx,double dy) {
+    std::vector<std::array<double,4>> out(d.size());
+    for(int y=0;y<h;++y)for(int x=0;x<w;++x) {
+        const auto sx=std::clamp(x-dx,0.0,w-1.0),sy=std::clamp(y-dy,0.0,h-1.0);
+        const auto x0=static_cast<int>(sx),y0=static_cast<int>(sy),x1=std::min(w-1,x0+1),y1=std::min(h-1,y0+1);const auto u=sx-x0,v=sy-y0;
+        const auto& a=d[static_cast<std::size_t>(y0)*w+x0];const auto& b=d[static_cast<std::size_t>(y0)*w+x1];
+        const auto& e=d[static_cast<std::size_t>(y1)*w+x0];const auto& g=d[static_cast<std::size_t>(y1)*w+x1];
+        for(int c=0;c<4;++c)out[static_cast<std::size_t>(y)*w+x][c]=(a[c]+(b[c]-a[c])*u)*(1-v)+(e[c]+(g[c]-e[c])*u)*v;
+    }
+    return out;
+}
 } // namespace
 
 std::size_t pixel_bytes(PixelFormat f) { return static_cast<std::size_t>(layout(f).scalar_bytes)*4; }
@@ -225,6 +297,11 @@ void validate(const Recipe& r) {
     check_range(f.halation,0,1,"Invalid halation");check_range(f.vignette,0,1,"Invalid vignette");
     check_range(f.bleach,0,1,"Invalid bleach");
     if(f.ratio!=0&&f.ratio!=1.33&&f.ratio!=1.85&&f.ratio!=2.39)throw std::invalid_argument("Unsupported ratio");
+    if(f.gauge!=0&&!gauge_for(f.gauge))throw std::invalid_argument("Unsupported grain gauge");
+    check_range(f.iso,50,500,"Invalid grain ISO");
+    if(f.format!=std::round(f.format)||f.format<0||f.format>=static_cast<double>(std::size(Formats)))throw std::invalid_argument("Unsupported film format");
+    check_range(f.weave,0,1,"Invalid gate weave");check_range(f.flicker,0,1,"Invalid flicker");check_range(f.dust,0,1,"Invalid dust");
+    if(f.perfs!=0&&f.perfs!=1)throw std::invalid_argument("Invalid perforation flag");
 }
 Color transform(Color color,const Recipe& recipe) {
     validate(recipe);for(auto v:color)if(!std::isfinite(v))throw std::invalid_argument("Nonfinite input color");
@@ -247,6 +324,8 @@ void render(const ConstFrame& input,const Frame& output,const Recipe& recipe,std
         c=apply_color(c,recipe,look,profile);
         pixels[static_cast<std::size_t>(y)*w+x]={c[0],c[1],c[2],alpha};
     }
+    const auto fmt=format_pass(film,w,h,frame_index);
+    if(fmt.dx||fmt.dy)pixels=shift(pixels,w,h,fmt.dx,fmt.dy);
     std::vector<float> light;
     if(film.bloom||film.halation) {
         light.resize(pixels.size()*3);
@@ -258,16 +337,21 @@ void render(const ConstFrame& input,const Frame& output,const Recipe& recipe,std
         }
         light=blur(light,w,h,std::max(1,static_cast<int>(std::round(std::min(w,h)*.018))));
     }
+    // Frame zero matches the JS still-grain equation. Later frames get a
+    // deterministic changing pattern, independent of render order.
+    const auto seed=static_cast<double>(frame_index%1048576)*19.193;const auto gauge=gauge_for(film.gauge);
+    const auto cell=gauge?std::max(.5,std::min(w,h)/1080.0*gauge->size*std::pow(film.iso/200,.35)):1.0;
+    const auto amp=gauge?film.grain*32*gauge->amplitude*std::sqrt(film.iso/200):0.0;
     for(int y=0;y<h;++y)for(int x=0;x<w;++x) {
         const auto i=static_cast<std::size_t>(y)*w+x;const auto& c=pixels[i];
         const auto dx=(x+.5)/w-.5,dy=(y+.5)/h-.5;
         const auto vignette=1-film.vignette*std::min(1.0,std::pow((dx*dx+dy*dy)*2,1.2));
-        // Frame zero matches the JS still-grain equation. Later frames get a
-        // deterministic changing pattern, independent of render order.
-        const auto seed=static_cast<double>(frame_index%1048576)*19.193;
-        const auto hash=std::sin((i+1)*12.9898+78.233+seed)*43758.5453;
-        const auto noise=(hash-std::floor(hash)-.5)*film.grain*32;
         const auto l=(c[0]*.2126+c[1]*.7152+c[2]*.0722)*255;
+        const auto hs=fract(std::sin((i+1)*12.9898+78.233+seed)*43758.5453);
+        const auto lw=gauge?.6+1.6*(l/255)*(1-l/255):0.0;
+        const auto noise=gauge?grain_noise(x,y,cell,seed)*amp*lw:(hs-.5)*film.grain*32;
+        const auto mask=fmt.mask.empty()?0.0:static_cast<double>(fmt.mask[i]);
+        const auto hole=fmt.f&&film.perfs?perforation(*fmt.f,x,y,w,h):0.0;
         const auto display_width=w*pixel_aspect;
         const auto matte=film.ratio&&(display_width/h>film.ratio?
             std::abs(dx)*display_width>h*film.ratio/2:std::abs(dy)*h>display_width/film.ratio/2);
@@ -276,7 +360,10 @@ void render(const ConstFrame& input,const Frame& output,const Recipe& recipe,std
             const auto desat=c[k]*255*(1-film.bleach*.65)+l*film.bleach*.65;
             auto v=desat+(desat-127.5)*film.bleach*.22;
             if(!light.empty())v+=light[i*3+k]*film.bloom*.45+(k==0?light[i*3]*film.halation*.55:0);
-            v=matte?0:clamp((v*vignette+noise)/255);
+            v=v*fmt.gain*vignette+noise+(gauge?(fract(hs*(k+1)*7.13)-.5)*amp*.25*lw:0);
+            if(mask)v+=mask>0?(255-v)*mask:v*mask;
+            v=matte?0:clamp(v/255);
+            if(hole)v+=(235.0/255-v)*hole;
             if(output.alpha==AlphaMode::Premultiplied)v*=c[3];
             write_scalar(p+out_layout.channels[k]*out_layout.scalar_bytes,out_layout,v);
         }

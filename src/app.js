@@ -47,7 +47,8 @@ function controls(){
  ["shoulder","Highlight softness",0,1,.01,100,"%"]];
  var film=[["grain","Grain",0,1,.01,100,"%"],["bloom","Bloom",0,1,.01,100,"%"],
  ["halation","Halation",0,1,.01,100,"%"],["vignette","Vignette",0,1,.01,100,"%"],
- ["bleach","Bleach bypass",0,1,.01,100,"%"]];
+ ["bleach","Bleach bypass",0,1,.01,100,"%"],["iso","Grain ISO",50,500,10,1,""],
+ ["weave","Gate weave",0,1,.01,100,"%"],["flicker","Flicker",0,1,.01,100,"%"],["dust","Dust",0,1,.01,100,"%"]];
  function create(c,target,type){
   var div=document.createElement("div");div.className="control";
   var line=document.createElement("div");line.className="control-line";
@@ -81,7 +82,7 @@ function sync(){
  $("profileHelp").textContent=state.settings.inputProfile==='srgb'?'Use for screenshots or footage already normalized by your editor.':
   state.settings.inputProfile==='rec709-gamma24'?'Full-range display RGB, gamma 2.4 with ideal black. This is not camera Rec.709 OETF.':
   'Use full-range, unconverted LOG values. Our SDR highlight rolloff is included in the exported LUT.';
- Object.keys(state.film).forEach(function(k){if(k!=="ratio")syncControl(k,state.film[k]);});$("ratio").value=state.film.ratio;
+ var selects=["ratio","gauge","format","perfs"];Object.keys(state.film).forEach(function(k){if(selects.indexOf(k)<0)syncControl(k,state.film[k]);else $(k).value=state.film[k];});
  Array.prototype.forEach.call(document.querySelectorAll(".look"),function(b){b.classList.toggle("active",b.dataset.look===state.settings.look);b.setAttribute("aria-pressed",String(b.dataset.look===state.settings.look));});
  buttons();
 }
@@ -248,7 +249,7 @@ $("auto").addEventListener("click",async function(){
   sync();await requestRender();status("Suggested exposure and balance applied. Fine-tune for intentional lighting.");
  }catch(e){fail(e);}
 });
-$("ratio").addEventListener("change",function(){state.film.ratio=Number(this.value);requestRender().catch(fail);});
+["ratio","gauge","format","perfs"].forEach(function(id){$(id).addEventListener("change",function(){state.film[id]=Number(this.value);requestRender().catch(fail);});});
 $("reset").addEventListener("click",function(){state.settings=E.settings({inputProfile:state.settings.inputProfile});state.film=F.normalize();state.model=null;state.analysis=null;state.recipeLoaded=false;sync();requestRender().catch(fail);status("Color and film controls reset. Source profile retained.");});
 $("shotFrame").addEventListener('change',function(){selectSource(Number(this.value));});
 $("previousFrame").addEventListener('click',function(){selectSource(state.activeFrame-1);});
@@ -276,7 +277,8 @@ function effectParams(recipe){
  var s=recipe.settings,f=F.normalize(recipe.film),look=Math.max(0,["neutral","amber","nocturne","evergreen","rose","silver","coast","earth","cyan","velvet"].indexOf(s.look)),ratio=Math.max(0,[0,1.33,1.85,2.39].indexOf(f.ratio));
  return [["Look",look,1],["Match strength",s.strength*100,0],["Exposure trim",s.exposure,0],["Temperature trim",s.temperature*100,0],["Tint trim",s.tint*100,0],
   ["Contrast",s.contrast*100,0],["Saturation",s.saturation*100,0],["Skin hue protection",s.preserveSkin*100,0],["Faded black",s.fade*100,0],["Highlight softness",s.shoulder*100,0],
-  ["Grain",f.grain*100,0],["Bloom",f.bloom*100,0],["Halation",f.halation*100,0],["Vignette",f.vignette*100,0],["Bleach bypass",f.bleach*100,0],["Frame ratio",ratio,1]];
+  ["Grain",f.grain*100,0],["Bloom",f.bloom*100,0],["Halation",f.halation*100,0],["Vignette",f.vignette*100,0],["Bleach bypass",f.bleach*100,0],["Frame ratio",ratio,1],
+  ["Grain format",[0,8,16,35,65].indexOf(f.gauge),1],["Grain ISO",f.iso,0],["Film format",f.format,1],["Gate weave",f.weave*100,0],["Flicker",f.flicker*100,0],["Dust",f.dust*100,0],["Perforations",f.perfs,1]];
 }
 $("applyNative").addEventListener('click',async function(){try{
  var recipe=E.parse(E.serialize(state.model,state.settings,state.film));

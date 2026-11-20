@@ -14,7 +14,7 @@ test('one-frame shot matches still fitting; pooled statistics include every samp
  assert.deepEqual(pooled,expected);assert.equal(pooled.source.count,768);
  const restored=E.parse(E.serialize(pooled,{}));
  assert.deepEqual(E.render(a,pooled).data,E.render(a,restored.model,restored.settings).data);
- assert.match(N.compile(restored),/^ODYGRADE_NATIVE 3/);
+ assert.match(N.compile(restored),/^ODYGRADE_NATIVE 4/);
  assert.deepEqual(E.createTransform(pooled)([.3,.4,.5]),E.createTransform(restored.model)([.3,.4,.5]));
 });
 test('shot pooling is bounded, explicit about invalid frames and changing brightness',()=>{
