@@ -2,7 +2,21 @@
 Updated: 2026-11-20 (Asia/Jakarta)
 
 
-## Latest checkpoint — AE undo/redo of panel apply (Claude, 2026-11-20)
+## Latest checkpoint — first real-footage grade (Claude, 2026-11-20)
+
+- User iPhone clip (HEVC 1920x1080 rotated to 1080x1920, 60 fps, 3 s, BT.709 SDR)
+  + user-supplied film still (palette strip/watermark cropped). Run folder
+  work/adobe-host/runs/real-20261120-144200 (reference.png, grade.json/.odyn,
+  f5/f15/f25 src+graded, compare.jpg).
+- fit-shot --profile rec709-gamma24, 9 sampled frames: fitted model, look neutral,
+  no exposure/WB correction. still-native renders: mean RGB 116/108/99 -> 80/84/70
+  (darker, teal-green background, warm skin kept by 65% skin protection); identical
+  means across the three frames (frozen per-shot transform, no flicker).
+- Not yet: the same grade live in AE/Premiere on this clip, per-frame render time
+  in host (CLI timing 3.8 s/frame includes node startup + 16-bit PNG I/O, not a
+  render benchmark).
+
+## Previous checkpoint — AE undo/redo of panel apply (Claude, 2026-11-20)
 
 - LIVE AE 24.6.2 PASS (runs/ae-undo-20261120-025101): one Undo after apply removes
   the whole effect (0 effects, comp/layer intact); Redo (command 2035) restores it
