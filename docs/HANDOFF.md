@@ -24,6 +24,13 @@ Updated: 2026-11-21 (Asia/Jakarta)
   embed still works), graded frame at 1.5 s == dev.6 AE render (0.000, max 0).
   Installed: dev.9-staticcrt, sha d327981a... Runner removed. AE project untitled/unsaved.
 
+- LIVE Premiere undo/redo (same scratch project, UI via computer use): History shows the
+  panel apply as ONE "Apply Effect" step; the ~17 scripted setValue calls create no
+  history entries. One Edit > Undo removes OdyGrade (Effect Controls empty, colours back
+  to source); Redo restores it and the redone frames == original graded (0.000, max 0;
+  again-*.png). Untested risk: re-apply onto a clip that ALREADY has OdyGrade only calls
+  setValue, which is not in History, so Undo would not revert those values.
+
 ## Previous checkpoint — first real-footage grade (Claude, 2026-11-20)
 
 - User iPhone clip (HEVC 1920x1080 rotated to 1080x1920, 60 fps, 3 s, BT.709 SDR)

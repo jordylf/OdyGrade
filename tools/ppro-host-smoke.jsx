@@ -66,7 +66,8 @@
   if(rframes){
    if(!app.project||!same(app.project.path,rp))throw Error('Real scratch project is not the active project. Refused; nothing modified.');
    var fq=bySeqName('OdyGrade real');app.project.activeSequence=fq;
-   for(r=0;r<3;r++){at(fq,rt[r]);var ft=$.hiresTimer;frame('graded-'+r);log.push('graded-'+r+' '+Math.round($.hiresTimer/1000)+' ms');}
+   var pre=new File(dir.fsName+'/graded-0.png').exists?'again-':'graded-';  // rerun (e.g. after undo/redo) never overwrites
+   for(r=0;r<3;r++){at(fq,rt[r]);var ft=$.hiresTimer;frame(pre+r);log.push('graded-'+r+' '+Math.round($.hiresTimer/1000)+' ms');}
    app.project.save();write(true,'Graded frames exported; scratch project saved.');return;
   }
   if(depth){
