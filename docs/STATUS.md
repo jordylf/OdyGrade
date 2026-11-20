@@ -57,7 +57,7 @@ Original implementation and look library; no proprietary Pocket binaries/assets 
 ## Not complete: do not claim Pocket parity or native timeline integration
 - Live host panel load, capture, and export must be tested in Adobe.
 - Timeline apply sets effect controls automatically; the reference snapshot embeds
-  in AE; Premiere reads it from the local pending store until "Load native grade..." embeds it. Premiere undo not verified.
+  in AE; Premiere reads it from the local pending store until "Load native grade..." embeds it. Premiere undo of a re-apply (values only) not verified.
 - Adobe-native real-time 16/32-bit timeline rendering and host keyframes. The portable core
   handles high-precision buffers, but is not an Adobe effect and is not performance-qualified.
 - Other camera/LOG encodings, automatic metadata/range detection, ICC, complete
