@@ -19,7 +19,17 @@ Updated: 2026-11-20 (Asia/Jakarta)
 - saveFrameToPng writes only after the script returns: queue frames, poll the file
   from outside. Rough wall time (file mtimes, incl. HEVC decode + 16-bit PNG encode):
   ~5 s/frame graded vs ~3 s/frame effect off; not a real-time playback benchmark.
-- Not yet: Premiere on this clip; AE project left untitled/unsaved (user's to discard).
+- LIVE Premiere 24.6.1 PASS on this clip (runs/ppro-real-20261120-145340): new jobs
+  "real <dir>" (new scratch project + source.mov, src frames, panel apply -> linked=0,
+  params-only ~= source 0.26) and "rframes <dir>" (graded frames after the manual
+  "Load native grade..." click, done via computer use on grade.odyn).
+  Premiere graded vs still-native on Premiere's own src frames: mean 0.73, p99 3,
+  max 16; only 0.88% px >4 and those sit on chroma edges (10x avg edge strength) ->
+  likely decode/chroma-upsampling path difference, grade math matches. Premiere vs
+  AE graded: 1.42 (src frames already differ 1.49). compare-ppro.jpg = src|PPro|AE.
+- Quirk: in both new jobs the report landed in depth-result.json, not
+  real-/rframes-result.json (nested ternary picked the wrong name; unexplained), so
+  the rframes log/timing was not written. AE project left untitled/unsaved.
 
 ## Previous checkpoint — AE undo/redo of panel apply (Claude, 2026-11-20)
 
