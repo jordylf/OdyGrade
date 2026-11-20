@@ -13,7 +13,12 @@ Updated: 2026-11-21 (Asia/Jakarta)
 - Native snapshot is now ODYGRADE_NATIVE 3 (+2 numbers per distribution, -1 -1 = none);
   reader keeps v1/v2. Installed 2026-11-21 as 0.4.0-dev.10-chroma (static CRT), sha
   d70a977c146d2b4d4774360ab9cfb6f07e5a2a1d85413f332d4eafa4c0a4a94e (verified in Program Files);
-  dev.9 kept as OdyGrade-native-dev/OdyGrade.dev9.aex.bak. Not yet re-tested live in hosts.
+  dev.9 kept as OdyGrade-native-dev/OdyGrade.dev9.aex.bak.
+- AE 2024 live on dev.10 (empty Untitled scratch project, never saved/closed): panel apply
+  of the v3 snapshot to IMG_1568 embedded it (link -17033, 16 bpc). Frames 0.5/1.5/2.5 s vs
+  offline still-native on the same AE source frames: max 1/255, mean 0.0035, 0 px >1.
+  AE graded chroma p99 0.105 / max 0.145 (ref 0.103 / 0.124). runs/chroma-*/ae-live.
+  Premiere on dev.10 not yet re-tested.
 - Result (runs/chroma-20261121-033902, same settings, offline still-native):
   p50 0.028 p90 0.066 unchanged; p99 0.125 -> 0.104; max 0.218 -> 0.146. compare.jpg.
 - Tests: npm test 56/56 (fitted-model JS<->native parity covers the new step), harness PASS.
