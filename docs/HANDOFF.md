@@ -18,7 +18,11 @@ Updated: 2026-11-21 (Asia/Jakarta)
   of the v3 snapshot to IMG_1568 embedded it (link -17033, 16 bpc). Frames 0.5/1.5/2.5 s vs
   offline still-native on the same AE source frames: max 1/255, mean 0.0035, 0 px >1.
   AE graded chroma p99 0.105 / max 0.145 (ref 0.103 / 0.124). runs/chroma-*/ae-live.
-  Premiere on dev.10 not yet re-tested.
+- Premiere 24.6.1 live on dev.10 (runs/ppro-chroma-20261121-035103, new scratch project via
+  runner, runner removed afterwards): panel apply of the v3 snapshot, auto-link at render
+  (no Load click). vs offline on Premiere's own src frames: mean 0.43/255, max 15, ~1.1% px
+  >2 (chroma-edge decode, same character as dev.9's 0.73 mean). Graded chroma p99 0.104 /
+  max 0.145 (ref 0.103 / 0.124).
 - Result (runs/chroma-20261121-033902, same settings, offline still-native):
   p50 0.028 p90 0.066 unchanged; p99 0.125 -> 0.104; max 0.218 -> 0.146. compare.jpg.
 - Tests: npm test 56/56 (fitted-model JS<->native parity covers the new step), harness PASS.
