@@ -2,7 +2,7 @@
 Updated: 2026-11-21 (Asia/Jakarta)
 
 
-## Latest checkpoint — Grain format + Film Format (Claude, 2026-11-21, dev.11 installed, AE verified)
+## Latest checkpoint — Grain format + Film Format (Claude, 2026-11-21, dev.11 installed, AE + Premiere verified)
 
 - User asked for Pocket Grade feature parity (own implementation; no Sotoi looks, names
   or UI copied). Added, mirrored equation-for-equation in src/film.js and core.cpp:
@@ -26,7 +26,12 @@ Updated: 2026-11-21 (Asia/Jakarta)
 - Installed as 0.4.0-dev.11-film (sha a3fb5bb4...). AE 2024 live (scratch untitled project,
   nothing saved/closed): params read back correctly; frame 0 == offline still-native (mean
   0.002/255, max 0); frames 0/10/30 differ (weave/flicker/dust per frame). Evidence:
-  runs/film-20261121-041013/ae-live (compare.jpg). Not done: Premiere live check.
+  runs/film-20261121-041013/ae-live (compare.jpg).
+- Premiere 24.6.1 live (runs/ppro-film-20261121-045103, new scratch project via job "real",
+  no Load click): ppro-host-smoke.jsx "real" now concatenates optional <dir>/params.txt
+  (film params). Each graded frame matches offline native render at exactly one frame
+  index (t 0.5/1.5/2.5 -> 29/89/149): mean 0.42-0.45/255, max 12 (same as dev.10 colour
+  0.43, decode differences). Perforation, dust and a scratch visible (compare.jpg).
 
 ## Earlier checkpoint — chroma tail compression / snapshot v3 (Claude, 2026-11-21)
 

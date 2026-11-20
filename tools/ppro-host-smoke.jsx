@@ -66,7 +66,10 @@
    $.evalFile(new File($.fileName).parent.parent.fsName+'/host/bridge.jsx');
    rs.videoTracks[0].clips[0].setSelected(true,true);
    var rg=new File(dir.fsName+'/grade.odyn');rg.open('r');var rsnap=rg.read();rg.close();
-   var rr=eval('('+OdyHost.apply(encodeURIComponent(rsnap),[['Look',0,1],['Match strength',100,0],['Exposure trim',0,0],['Temperature trim',0,0],['Tint trim',0,0],['Contrast',100,0],['Saturation',100,0],['Skin hue protection',65,0],['Faded black',0,0],['Highlight softness',0,0],['Grain',0,0],['Bloom',0,0],['Halation',0,0],['Vignette',0,0],['Bleach bypass',0,0],['Frame ratio',0,1]])+')');
+   var rparams=[['Look',0,1],['Match strength',100,0],['Exposure trim',0,0],['Temperature trim',0,0],['Tint trim',0,0],['Contrast',100,0],['Saturation',100,0],['Skin hue protection',65,0],['Faded black',0,0],['Highlight softness',0,0],['Grain',0,0],['Bloom',0,0],['Halation',0,0],['Vignette',0,0],['Bleach bypass',0,0],['Frame ratio',0,1]];
+   var rx=new File(dir.fsName+'/params.txt');  // optional extra/override params, e.g. [['Grain',60,0],['Film format',2,1]]
+   if(rx.exists){rx.open('r');rparams=rparams.concat(eval('('+rx.read()+')'));rx.close();}
+   var rr=eval('('+OdyHost.apply(encodeURIComponent(rsnap),rparams)+')');
    log.push('apply='+rr.ok+' count='+rr.count+' linked='+rr.linked+' err='+rr.error);if(!rr.ok)throw Error(rr.error);
    at(rs,rt[1]);frame('params-1');app.project.save();
    write(true,'Real clip imported, src frames exported, panel apply done (params only). Click "Load native grade..." then queue "rframes <dir>".');return;
