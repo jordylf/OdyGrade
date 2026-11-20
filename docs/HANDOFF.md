@@ -11,8 +11,9 @@ Updated: 2026-11-21 (Asia/Jakarta)
   chroma_tail compress (never boost) chroma above source p90 toward the reference
   p90..p99 map, weighted by strength*skin-protect. Models without chroma are unchanged.
 - Native snapshot is now ODYGRADE_NATIVE 3 (+2 numbers per distribution, -1 -1 = none);
-  reader keeps v1/v2. Installed dev.9 .aex CANNOT read v3: install the new build before
-  applying new grades from the panel (already-embedded v2 grades keep working).
+  reader keeps v1/v2. Installed 2026-11-21 as 0.4.0-dev.10-chroma (static CRT), sha
+  d70a977c146d2b4d4774360ab9cfb6f07e5a2a1d85413f332d4eafa4c0a4a94e (verified in Program Files);
+  dev.9 kept as OdyGrade-native-dev/OdyGrade.dev9.aex.bak. Not yet re-tested live in hosts.
 - Result (runs/chroma-20261121-033902, same settings, offline still-native):
   p50 0.028 p90 0.066 unchanged; p99 0.125 -> 0.104; max 0.218 -> 0.146. compare.jpg.
 - Tests: npm test 56/56 (fitted-model JS<->native parity covers the new step), harness PASS.

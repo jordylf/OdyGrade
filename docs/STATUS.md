@@ -1,7 +1,7 @@
 # OdyGrade implementation status
 
 Latest (Claude, 2026-11-21): reference fit now compresses the saturated chroma tail
-(snapshot v3; real clip p99 chroma 0.125 -> 0.104 vs ref 0.103); needs a new .aex install.
+(snapshot v3; real clip p99 chroma 0.125 -> 0.104 vs ref 0.103); installed as dev.10, live host re-test pending.
 Also 2026-11-21: dev.9 applies the reference grade in Premiere with no
 click (render-time read of this computer's pending grade, live-verified identical to
 manual Load); "Load native grade..." still needed to carry it to another machine.
