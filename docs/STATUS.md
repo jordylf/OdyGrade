@@ -3,7 +3,7 @@
 Latest (Claude, 2026-11-21): dev.9 applies the reference grade in Premiere with no
 click (render-time read of this computer's pending grade, live-verified identical to
 manual Load); "Load native grade..." still needed to carry it to another machine.
-Native builds use the static CRT (host msvcp140 14.23 crashed dev.8). AE on dev.9: harness only.
+Native builds use the static CRT (host msvcp140 14.23 crashed dev.8). AE on dev.9 live: identical to dev.6.
 Earlier (2026-11-20): panel "Apply to selected clips" live-verified in Premiere
 and AE. dev.6 auto-embeds the reference grade in AE (no click, survives save);
 the Premiere manual Load click is live-verified, including save/reopen persistence.

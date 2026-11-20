@@ -20,8 +20,9 @@ Updated: 2026-11-21 (Asia/Jakarta)
   graded frames == manual-Load run (0.000, max 0); vs offline mean 0.73 (same as
   before). rframes 2.2-2.5 s/frame incl. PNG export. Report-name bug fixed (table
   instead of nested ternary in ppro-host-smoke.jsx).
-- Not re-verified live on dev.9: AE (harness only). Installed: dev.9-staticcrt,
-  sha d327981a... Runner removed.
+- LIVE AE 24.6.2 on dev.9 (runs/ae-dev9-1795205913944): panel apply linked=1 (callback
+  embed still works), graded frame at 1.5 s == dev.6 AE render (0.000, max 0).
+  Installed: dev.9-staticcrt, sha d327981a... Runner removed. AE project untitled/unsaved.
 
 ## Previous checkpoint — first real-footage grade (Claude, 2026-11-20)
 
