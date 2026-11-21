@@ -1,8 +1,18 @@
 # Claude handoff — OdyGrade
-Updated: 2026-11-21 (Asia/Jakarta)
+Updated: 2026-11-22 (Asia/Jakarta)
 
 
-## Latest checkpoint — per-tool On switches (Claude, 2026-11-22, panel only)
+## Latest checkpoint — CEP panel installed for this user (Claude, 2026-11-22)
+
+- `npm run package` + `tools/install-dev.ps1` (no -EnableDebug; PlayerDebugMode=1 was already set)
+  -> %APPDATA%\Adobe\CEP\extensions\com.odyworks.odygrade (unsigned dev build, not a ZXP).
+- Fixed CSXS/manifest.xml menu name: it held mojibake "OdyGrade â€” Reference Color"; now
+  "OdyGrade - Reference Color".
+- Live AE 24.6.2 (after restart): Window > Extensions lists it, panel opens, host label
+  "Adobe 24.6.2", Film stock select, Stock amount and per-tool On switches visible.
+  Premiere needs a restart to list it (not opened this checkpoint).
+
+## Previous checkpoint — per-tool On switches (Claude, 2026-11-22, panel only)
 
 - Panel: each tool slider has an On checkbox (Look strength, Contrast, Saturation, Skin hue,
   Faded black, Highlight softness, Stock amount, Grain, Bloom, Halation, Vignette, Bleach,

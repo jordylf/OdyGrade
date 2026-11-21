@@ -1,6 +1,7 @@
 # OdyGrade implementation status
 
-Latest (Claude, 2026-11-22): per-tool On switches in the panel (off = neutral everywhere it exports).
+Latest (Claude, 2026-11-22): CEP panel installed per-user; opens in AE 24.6.2 (menu name mojibake fixed).
+Earlier: per-tool On switches in the panel (off = neutral everywhere it exports).
 Earlier: camera LOG profiles added (ARRI LogC3, Canon C-Log3, F-Log, D-Log,
 Apple Log, BMD Film Gen 5), tests 60/60; dev.13 installed, AE live == offline (LogC3).
 Earlier: Film stock presets (9, own emulation, snapshot v5, Adobe params
