@@ -2,7 +2,20 @@
 Updated: 2026-11-22 (Asia/Jakarta)
 
 
-## Latest checkpoint — panel UX redesign (Claude, 2026-11-22)
+
+## Latest checkpoint — dev.14 host re-check (Claude, 2026-11-22)
+
+- AE 24.6.2, 32 bpc (empty Untitled project, test comp only, restored to 16 bpc after):
+  runs/perf-ae-20261122/ae-graded-32bpc.png == offline (mean 0.03/255, max 0.1) after x10.
+  Quirk: comp.saveFrameToPng in a 32 bpc project writes PNG values at exactly 1/10
+  (ungraded source frame shows the same factor), so it is an export artifact, not the effect.
+- Premiere 24.6.1, real clip, dev.14 (runs/ppro-dev14-20261122-024906, job "real" + full
+  colour+film params, no Load click): each graded frame matches offline (offline.odyn =
+  snapshot + the applied params) at exactly one frame index: mean 0.54/0.51/0.53, max 17,
+  ~0.65% px >3 (decode differences, same as earlier runs). Export 1.0-1.5 s/frame.
+  Smoke runner removed afterwards.
+
+## Earlier checkpoint — panel UX redesign (Claude, 2026-11-22)
 
 - Spec docs/superpowers/specs/2026-11-22-panel-ux-design.md, plan docs/superpowers/plans/2026-11-22-panel-ux.md.
 - index.html/src/style.css rewritten panel-first: slim header, preview first, foldable steps
