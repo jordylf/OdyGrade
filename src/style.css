@@ -111,10 +111,12 @@ input[type=range]{width:100%;display:block;margin:6px 0 0;accent-color:var(--acc
 .lut-group button{border-radius:0 6px 6px 0;flex:1}
 .actions>button,.lut-group{flex:1 1 auto}
 
+/* Short narrow docks: a sticky preview would cover the steps */
+@media(max-height:699px){.preview-col{position:static}}
 /* Medium panels: preview + steps left, adjust right */
 @media(min-width:640px){
-.layout{overflow:hidden;grid-template-columns:minmax(0,1fr) 300px;grid-template-rows:auto minmax(0,1fr);grid-template-areas:"preview adjust" "steps adjust"}
-.preview-col{position:static;border-bottom:0}
+.layout{overflow:hidden;grid-template-columns:minmax(0,1fr) 300px;grid-template-rows:minmax(0,auto) minmax(140px,1fr);grid-template-areas:"preview adjust" "steps adjust"}
+.preview-col{position:static;border-bottom:0;overflow:auto;min-height:0}
 .steps-col,.adjust-col{overflow:auto;min-height:0}
 .adjust-col{border-left:1px solid var(--border);background:var(--panel)}
 .adjust-col .step{border:0;background:none;margin:0}

@@ -25,4 +25,10 @@ test('text is readable (no font below 11px)',()=>{
 });
 test('responsive breakpoints for medium and wide panels',()=>{
  assert.ok(css.includes('@media(min-width:640px)'));assert.ok(css.includes('@media(min-width:1100px)'));
+ // short docks: the sticky preview must not cover the steps; medium preview row must be able to shrink
+ assert.ok(css.includes('@media(max-height:699px){.preview-col{position:static}}'));
+ assert.ok(css.includes('grid-template-rows:minmax(0,auto) minmax(140px,1fr)'));
+});
+test('no buttons nested inside a step summary',()=>{
+ for(const m of html.matchAll(/<summary>([\s\S]*?)<\/summary>/g))assert.ok(!m[1].includes('<button'),m[1]);
 });

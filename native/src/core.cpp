@@ -220,8 +220,13 @@ template<class F> void parallel_rows(int h,F&& body) {
     const auto cores=std::max(1u,std::thread::hardware_concurrency());
     const auto n=static_cast<int>(std::min<unsigned>(cores,static_cast<unsigned>((h+31)/32)));
     if(n<=1){body(0,h);return;}
-    std::vector<std::thread> workers;std::vector<std::exception_ptr> errors(n);
-    for(int t=0;t<n;++t)workers.emplace_back([&,t]{try{body(h*t/n,h*(t+1)/n);}catch(...){errors[t]=std::current_exception();}});
+    std::vector<std::exception_ptr> errors(n);
+    auto run=[&](int t){try{body(int(1LL*h*t/n),int(1LL*h*(t+1)/n));}catch(...){errors[t]=std::current_exception();}};
+    std::vector<std::thread> workers;workers.reserve(n);int started=0;
+    // A failed thread start must not unwind past joinable threads (std::terminate kills the host):
+    // the ranges that got no thread run on this one instead.
+    try{for(;started<n;++started)workers.emplace_back(run,started);}catch(...){}
+    for(int t=started;t<n;++t)run(t);
     for(auto& w:workers)w.join();
     for(auto& e:errors)if(e)std::rethrow_exception(e);
 }

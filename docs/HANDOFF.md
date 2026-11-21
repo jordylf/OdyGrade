@@ -15,6 +15,19 @@ Updated: 2026-11-22 (Asia/Jakarta)
   ~0.65% px >3 (decode differences, same as earlier runs). Export 1.0-1.5 s/frame.
   Smoke runner removed afterwards.
 
+- Independent review (2 fresh reviewers, 2026-11-22):
+  - core.cpp threading: no races, output thread-count independent. Fixed: parallel_rows no
+    longer std::terminate()s the host if a thread fails to start (reserve, run the rest
+    inline, join all) and range maths is 64-bit. Output byte-identical (bench colour+film).
+    Open: under AE Multi-Frame Rendering each frame spawns up to N cores threads per pass
+    (oversubscription); measure with MFR before adding a thread cap or pool.
+  - Panel: fixed short narrow docks (sticky preview covered the steps; now static below
+    700 px height) and medium layout at short heights (steps column was 17 px at 700x400,
+    now >=140 px; preview row shrinks and scrolls). Reset moved out of the <summary>
+    ("Reset all" next to Look). Step 2 shows "From saved grade" for an opened recipe.
+    Browser re-check 300x400 / 700x400 / 1280x800 OK, no console errors; tests 66/66.
+    Installed panel files updated. .aex rebuilt with the fix (harness PASS), NOT installed.
+
 ## Earlier checkpoint — panel UX redesign (Claude, 2026-11-22)
 
 - Spec docs/superpowers/specs/2026-11-22-panel-ux-design.md, plan docs/superpowers/plans/2026-11-22-panel-ux.md.

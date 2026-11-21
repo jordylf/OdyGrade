@@ -23,7 +23,7 @@ function fail(e){status(e.message||String(e),true);}
 function stepStates(){
  var frames=state.sourceFrames.length,f=$("stepFrameState"),r=$("stepReferenceState");
  f.textContent=frames?frames+" frame"+(frames===1?"":"s"):"Not loaded";f.classList.toggle("done",!!frames);
- r.textContent=state.model?"Matched":state.reference?"Loaded":"Not loaded";r.classList.toggle("done",!!(state.model||state.reference));
+ r.textContent=state.model?(state.recipeLoaded?"From saved grade":"Matched"):state.reference?"Loaded":"Not loaded";r.classList.toggle("done",!!state.model);
 }
 function buttons(){
  stepStates();
