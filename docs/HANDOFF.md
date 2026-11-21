@@ -3,7 +3,22 @@ Updated: 2026-11-22 (Asia/Jakarta)
 
 
 
-## Latest checkpoint — dev.14 host re-check (Claude, 2026-11-22)
+
+## Latest checkpoint — AE Multi-Frame Rendering (Claude, 2026-11-22, in progress)
+
+- Before: OutFlags_2=0, so AE rendered OdyGrade comps without MFR. Baseline dev.15, render
+  queue 120 frames 1080x1920 16 bpc full film, TIFF: 113.9 s (effect off 8.6 s).
+- dev.16-mfr (installed, sha cfad7918...): PiPL OutFlags_2 + global out_flags2 =
+  SUPPORTS_THREADED_RENDERING; harness renders 8 threads at once == serial. AE pref MFR on.
+  Same render: 122.1 s, frames identical to dev.15. No gain: every frame already uses all cores.
+- Core scaling (CLI, 1 frame 16-bit): 1 thread 1.65 s, 4 threads 0.75 s, 20 threads 0.39 s.
+- Built, NOT installed (dev.17 candidate): odygrade::set_thread_limit (thread_local, 0 = all
+  cores); adapter render splits cores by concurrent renders (atomic counter). Core test: limit 1
+  == all cores; harness PASS; bench byte-identical.
+- Next: install dev.17 (AE closed + UAC), rerun the 120-frame render, compare with 113.9/122.1 s.
+  Open question: AE render queue costs ~0.95 s/frame vs ~0.39 s CLI; find where.
+
+## Earlier checkpoint — dev.14 host re-check (Claude, 2026-11-22)
 
 - AE 24.6.2, 32 bpc (empty Untitled project, test comp only, restored to 16 bpc after):
   runs/perf-ae-20261122/ae-graded-32bpc.png == offline (mean 0.03/255, max 0.1) after x10.

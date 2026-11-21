@@ -8,6 +8,7 @@
 #include <iostream>
 #include <map>
 #include <stdexcept>
+#include <thread>
 #include <vector>
 using namespace odygrade_adobe;
 namespace {
@@ -30,6 +31,7 @@ int main(int argc,char** argv){
   PF_InData in{};in.utils=&utils;in.inter.add_param=add;in.inter.abort=abortRender;in.appl_id=kAppID_AfterEffects;in.pixel_aspect_ratio.num=1;in.pixel_aspect_ratio.den=1;in.time_step=1;in.time_scale=12;in.field=PF_Field_FRAME;
   PF_OutData out{};PF_ParamDef* p[Count];for(int i=0;i<Count;++i)p[i]=&params[i];
   require(EffectMain(PF_Cmd_GLOBAL_SETUP,&in,&out,p,nullptr,nullptr)==0,"global setup");require(out.out_flags==(PF_OutFlag_DEEP_COLOR_AWARE|PF_OutFlag_NON_PARAM_VARY),"global flags");
+  require(out.out_flags2==PF_OutFlag2_SUPPORTS_THREADED_RENDERING,"MFR flag (must match PiPL OutFlags_2)");
   require(EffectMain(PF_Cmd_PARAMS_SETUP,&in,&out,p,nullptr,nullptr)==0&&out.num_params==Count&&nextParam==Count,"parameter setup");
   const int w=24,h=16;std::vector<PF_Pixel8> source(w*h),dest(w*h),expected(w*h);
   for(int i=0;i<w*h;++i)source[i]={255,static_cast<A_u_char>(30+i%180),static_cast<A_u_char>(40+i%160),static_cast<A_u_char>(50+i%140)};
@@ -82,6 +84,11 @@ int main(int argc,char** argv){
    const auto stored=params[Stored].u.arb_d.value,empty=allocate(1);params[Stored].u.arb_d.value=empty;
    params[Link].u.sd.value=0;require(EffectMain(PF_Cmd_RENDER,&in,&out,p,&world,nullptr)==0&&std::memcmp(embedded.data(),dest.data(),dest.size()*4)!=0,"empty store renders params only");
    params[Link].u.sd.value=123;require(EffectMain(PF_Cmd_RENDER,&in,&out,p,&world,nullptr)==0&&std::memcmp(embedded.data(),dest.data(),dest.size()*4)==0,"render-time link must match embedded grade");
+   {// Multi-Frame Rendering: concurrent renders (shared params, render-time link cache) == serial output.
+    std::vector<std::vector<PF_Pixel8>> outs(8,std::vector<PF_Pixel8>(w*h));std::vector<PF_Err> errs(8,-1);std::vector<std::thread> ts;
+    for(int t=0;t<8;++t)ts.emplace_back([&,t]{PF_LayerDef o=world;o.data=reinterpret_cast<PF_PixelPtr>(outs[t].data());PF_OutData po{};errs[t]=EffectMain(PF_Cmd_RENDER,&in,&po,p,&o,nullptr);});
+    for(auto& t:ts)t.join();
+    for(int t=0;t<8;++t)require(errs[t]==0&&std::memcmp(outs[t].data(),embedded.data(),dest.size()*4)==0,"concurrent render must match serial");}
    params[Link].u.sd.value=124;require(EffectMain(PF_Cmd_RENDER,&in,&out,p,&world,nullptr)==0&&std::memcmp(embedded.data(),dest.data(),dest.size()*4)!=0,"unknown token falls back to store");
    params[Stored].u.arb_d.value=stored;dispose(empty);params[Link].u.sd.value=0;
    std::filesystem::remove_all(appdata);}

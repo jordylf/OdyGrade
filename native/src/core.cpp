@@ -215,9 +215,11 @@ void check_frame(const void* data,int w,int h,std::ptrdiff_t stride,PixelFormat 
     if(std::abs(stride)>std::numeric_limits<std::ptrdiff_t>::max()/h)
         throw std::invalid_argument("Frame stride overflow");
 }
+thread_local int thread_limit=0;
 // Splits rows over the cores; each row is independent, so output is identical to one thread.
 template<class F> void parallel_rows(int h,F&& body) {
-    const auto cores=std::max(1u,std::thread::hardware_concurrency());
+    auto cores=std::max(1u,std::thread::hardware_concurrency());
+    if(thread_limit>0)cores=std::min(cores,static_cast<unsigned>(thread_limit));
     const auto n=static_cast<int>(std::min<unsigned>(cores,static_cast<unsigned>((h+31)/32)));
     if(n<=1){body(0,h);return;}
     std::vector<std::exception_ptr> errors(n);
@@ -362,6 +364,7 @@ Color transform(Color color,const Recipe& recipe) {
     validate(recipe);for(auto v:color)if(!std::isfinite(v))throw std::invalid_argument("Nonfinite input color");
     return apply_color(color,recipe,prepare(recipe));
 }
+void set_thread_limit(int threads){thread_limit=std::max(0,threads);}
 void render(const ConstFrame& input,const Frame& output,const Recipe& recipe,std::uint64_t frame_index,double pixel_aspect) {
     validate(recipe);
     check_range(pixel_aspect,1.0/16,16,"Invalid pixel aspect ratio");

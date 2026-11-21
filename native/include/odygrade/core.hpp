@@ -64,6 +64,9 @@ Color transform(Color color, const Recipe& recipe);
 // No host state, filesystem access, static mutable caches or per-frame refitting.
 void render(const ConstFrame& input, const Frame& output, const Recipe& recipe,
             std::uint64_t frame_index = 0, double pixel_aspect = 1);
+// Max worker threads for render() calls made from the calling thread; 0 = all cores.
+// Hosts rendering several frames at once (AE Multi-Frame Rendering) split the cores.
+void set_thread_limit(int threads);
 // Bounded internal interchange generated from the validated JSON recipe by JS.
 // This is not an Adobe effect parameter block or an Adobe plugin binary.
 Recipe read_recipe(const std::string& text);

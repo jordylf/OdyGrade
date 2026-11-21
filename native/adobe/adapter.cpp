@@ -1,5 +1,6 @@
 #include "adapter.hpp"
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -9,13 +10,14 @@
 #include <map>
 #include <mutex>
 #include <stdexcept>
+#include <thread>
 #include <vector>
 #include <commdlg.h>
 namespace odygrade_adobe {
 namespace {
 constexpr std::size_t Limit=65536;
 // Opt-in host trace: active only when %TEMP%\OdyGrade-trace.log already exists.
-// ponytail: unsynchronized appends; fine for single-threaded host bring-up only.
+// CRT FILE calls lock internally, so MFR render threads may interleave lines but not corrupt them.
 FILE* trace_file();
 void trace(const char* fmt,int a,int b=0){if(auto f=trace_file()){std::fprintf(f,fmt,a,b);std::fputc('\n',f);std::fflush(f);}}
 FILE* trace_file(){
@@ -114,6 +116,9 @@ struct PremierePixels {
 PF_Err global(PF_InData* in_data,PF_OutData* out_data){
  out_data->my_version=PF_VERSION(0,4,0,PF_Stage_DEVELOP,1);
  out_data->out_flags=PF_OutFlag_DEEP_COLOR_AWARE|PF_OutFlag_NON_PARAM_VARY;
+ // Multi-Frame Rendering: render only reads params and the arb handle; the shared pending
+ // cache is mutex-guarded; no global or sequence data. Must match the PiPL OutFlags_2.
+ out_data->out_flags2=PF_OutFlag2_SUPPORTS_THREADED_RENDERING;
  PremierePixels pixels(in_data);
  if(pixels.suite){auto err=pixels.suite->ClearSupportedPixelFormats(in_data->effect_ref);if(err)return err;
   err=pixels.suite->AddSupportedPixelFormat(in_data->effect_ref,PrPixelFormat_BGRA_4444_32f);if(err)return err;
@@ -148,6 +153,9 @@ PF_Err render(PF_InData* in_data,PF_ParamDef* p[],PF_LayerDef* output){
  if(in_data->field!=PF_Field_FRAME)throw std::invalid_argument("Progressive frames required; deinterlace before OdyGrade");
  if(input.width<1||input.height<1)return PF_Err_NONE;
  if(static_cast<std::uint64_t>(input.width)*input.height>16000000)throw std::invalid_argument("OdyGrade preview supports up to 16 megapixels");
+ // MFR: frames rendering at once share the cores instead of each spawning one thread per core.
+ static std::atomic<int> active{0};
+ struct Active{Active(){odygrade::set_thread_limit(static_cast<int>(std::max(1u,std::thread::hardware_concurrency()/static_cast<unsigned>(++active))));}~Active(){--active;}} busy;
  const auto token=p[Link]->u.sd.value;auto encoded=token>0?linked_grade(token):std::string{};
  if(encoded.empty())encoded=text(in_data,p[Stored]->u.arb_d.value);
  auto base=encoded.empty()?odygrade::Recipe{}:odygrade::read_recipe(encoded);

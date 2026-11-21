@@ -96,6 +96,11 @@ void test_temporal_and_transparent_glow() {
     recipe.film.grain=.2;
     auto one=std::async(std::launch::async,[&]{std::vector<float> x(input.size());draw(x,71);return x;});
     draw(b,71);require(one.get()==b,"Concurrent rendering has shared mutable state");
+    {// Thread limit (MFR core split) must not change pixels; frame tall enough to use many threads.
+     const int w=96,h=400;Recipe film;film.film.grain=.4;film.film.bloom=.6;film.film.halation=.5;film.film.vignette=.3;
+     std::vector<float> in(w*h*4),all(in.size()),single(in.size());for(std::size_t i=0;i<in.size();++i)in[i]=(i%4==3)?1.f:float((i*37)%251)/251.f;
+     const auto go=[&](std::vector<float>& o){render({in.data(),w,h,w*16,PixelFormat::RGBA32F,AlphaMode::Straight},{o.data(),w,h,w*16,PixelFormat::RGBA32F,AlphaMode::Straight},film,9);};
+     go(all);set_thread_limit(1);go(single);set_thread_limit(0);require(all==single,"Thread limit changes output");}
 }
 }
 int main() {
