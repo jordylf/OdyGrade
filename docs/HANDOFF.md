@@ -14,7 +14,14 @@ Updated: 2026-11-22 (Asia/Jakarta)
   colour (LogC3 + match + Chrome stock) 1215 -> ~180 ms; colour + film (grain, bloom,
   halation, format/weave/dust/perfs) 1472 -> ~255 ms.
 - Installed as 0.4.0-dev.14-perf (sha256 c7b32b53...5193, install-result ok; dev.13 kept as
-  OdyGrade.dev13.aex.bak). Live AE/Premiere render of dev.14 not yet checked.
+  OdyGrade.dev13.aex.bak).
+- LIVE AE 24.6.2, dev.14 (empty Untitled project, never saved/closed; runs/perf-ae-20261122):
+  1080x1920 16-bit PNG, Amber + Chrome 0.7 + grain 35mm/bloom/halation/vignette/format 3
+  weave/dust/perfs, panel-style apply (linked=1). Frame 0 == offline still-native
+  (mean 0.002/255, max 0); vs source mean 13.5/255 (effect really applied).
+  Frame Render Time (16 bpc, caches purged): effect on 516/527 ms, effect off 121 ms ->
+  OdyGrade ~0.4 s/frame in host. (dev.13 was 258 ms on a 432x768 colour-only frame,
+  ~1.6 s scaled to 1080x1920.) Premiere not re-checked on dev.14.
   Not measured in-host; AE Multi-Frame Rendering may run several frames at once, so
   per-frame threads can oversubscribe (still correct).
 
