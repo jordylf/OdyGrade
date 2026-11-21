@@ -1,7 +1,7 @@
 # OdyGrade implementation status
 
 Latest (Claude, 2026-11-21): Film stock presets (9, own emulation, snapshot v5, Adobe params
-"Film stock"/"Stock amount") added, tests 58/58, harness PASS; not installed yet.
+"Film stock"/"Stock amount") added, tests 58/58, harness PASS; dev.12 installed, AE live == offline (max 0/255).
 Earlier: Grain format (8/16/35/65 mm + ISO) and Film format (weave, flicker,
 dust, perforations) added, snapshot v4, tests pass; dev.11 installed, AE live frame 0 == offline (max 0/255), Premiere live mean 0.42/255 at matching frame index.
 Earlier 2026-11-21: reference fit now compresses the saturated chroma tail

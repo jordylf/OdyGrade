@@ -2,7 +2,7 @@
 Updated: 2026-11-21 (Asia/Jakarta)
 
 
-## Latest checkpoint — Film stock presets (Claude, 2026-11-21, not yet installed)
+## Latest checkpoint — Film stock presets (Claude, 2026-11-21, dev.12 installed, AE verified)
 
 - Own film stock emulation (generic names, no manufacturer looks/trademarks): None, Tungsten 500,
   Daylight 250, Portrait 400, Chrome 100, Consumer 200, Cinema Print, Mono 400, Expired.
@@ -16,7 +16,11 @@ Updated: 2026-11-21 (Asia/Jakarta)
 - Tests 58/58 (new JS<->native parity for every stock at 100% and 40%); harness checks the
   stock param matches a direct core render, rejects out of range, and None restores output.
 - Example grid: work/adobe-host/runs/stocks-20261121-050620/stocks.jpg.
-- Not done: install as dev.12 + live AE/Premiere check.
+- Installed 2026-11-22 as 0.4.0-dev.12-stock (sha 53a2151c...; dev.11 backup OdyGrade.dev11.aex.bak).
+  AE 2024 live (empty untitled project, nothing saved/closed; runs/stock-ae-20261122-012637):
+  OdyHost.apply ['Film stock',4,1] -> AE popup 5 (Chrome 100), amount 70, embedded (link -20052).
+  Frame 0 == offline still-native (mean 0.002/255, max 0); vs same grade without stock 6.3/255.
+- Not done: Premiere live check of Film stock.
 
 ## Earlier checkpoint — Grain format + Film Format (Claude, 2026-11-21, dev.11 installed, AE + Premiere verified)
 
