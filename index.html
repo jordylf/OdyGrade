@@ -1,43 +1,59 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data: file:; script-src 'self'; style-src 'self'; img-src 'self' blob: data: file:; worker-src 'self' blob:; connect-src 'self'">
-<title>OdyGrade — Reference color studio</title><link rel="stylesheet" href="src/style.css"></head>
+<title>OdyGrade — Reference color</title><link rel="stylesheet" href="src/style.css"></head>
 <body>
-<header class="topbar"><a class="brand" href="./index.html"><span class="mark">O</span><strong>ody<span>grade</span></strong><span class="build">LAB / 0.3</span></a><div class="top-actions"><span class="host-badge" id="host">BROWSER PREVIEW</span><button id="loadRecipe">Open grade</button><button id="saveRecipe">Save grade ↗</button></div></header>
-<div class="shell">
-<aside class="sidebar"><div class="sidebar-label">WORKSPACE</div><div class="nav-item active"><span>◈</span> Reference match <small>01</small></div><div class="nav-description">A frame you love.<br>A look that's yours.</div><div class="sidebar-label">LOOK COLLECTION</div><div id="looks" class="looks"></div><div class="sidebar-bottom"><span class="online-dot"></span> Local processing<div>Your frames stay on this device.</div></div></aside>
-<main>
-<div class="title-row"><div><div class="eyebrow">COLOR, WITH INTENTION</div><h1>Find your film's <em>feeling.</em></h1><p>Bring a reference. Shape the mood. Make it your own.</p></div><button id="demo" class="demo-button">↗ Load sample frames</button></div>
-<div class="workspace-grid">
-<section class="source-zone">
-<div class="section-heading"><h2><span class="number">01</span> Your frame</h2><span class="muted" id="sourceInfo">PNG / JPG / WEBP</span></div>
-<button class="dropzone" id="sourceDrop" aria-label="Import source frames"><canvas id="sourceCanvas" hidden></canvas><span class="drop-content" id="sourceEmpty"><span class="upload-icon">＋</span><strong>Drop frames from one shot</strong><small>Select 1–32 PNG, JPG or WebP stills</small></span><span class="image-tag" id="sourceTag" hidden>SOURCE</span></button>
-<div id="shotControls" class="shot-controls" hidden><label for="shotFrame">Preview frame</label><div class="shot-navigation"><button id="previousFrame" aria-label="Previous frame">←</button><select id="shotFrame"></select><button id="nextFrame" aria-label="Next frame">→</button></div><p id="shotHelp">All loaded frames guide one frozen grade.</p></div>
-<div class="input-actions"><button id="capture">Capture Adobe frame</button><button id="auto">Auto balance</button></div>
-<div class="profile-control"><label for="sourceProfile">Source camera / color profile</label><select id="sourceProfile"></select><p id="profileHelp">Choose the encoding of your source frame.</p></div>
-<div class="section-heading reference-heading"><h2><span class="number">02</span> Your inspiration</h2><span class="muted">ONE REFERENCE</span></div>
-<button class="dropzone reference" id="referenceDrop" aria-label="Import reference frame"><canvas id="referenceCanvas" hidden></canvas><span class="drop-content" id="referenceEmpty"><span class="upload-icon">◈</span><strong>A film still. A new direction.</strong><small>Drop a screenshot or click to browse</small></span><span class="image-tag" id="referenceTag" hidden>REFERENCE</span></button>
-<div class="reference-caption"><span class="online-dot"></span> Reference guides palette and contrast</div>
-<button class="primary match-button" id="match" disabled><span>✦</span> Create grade <span>↗</span></button>
-<p class="input-note">Reference screenshots are sRGB. If your editor already converted LOG, choose sRGB to avoid converting it twice.</p>
+<header class="topbar"><span class="brand"><span class="mark">O</span><strong>ody<span>grade</span></strong></span><span class="host-badge" id="host">BROWSER PREVIEW</span><div class="top-actions"><button id="loadRecipe" title="Open a saved grade (.json)">Open</button><button id="saveRecipe" title="Save this grade (.json)">Save</button></div></header>
+<div class="layout">
+<section class="preview-col" aria-label="Preview">
+<div class="viewer" id="viewer"><canvas id="resultCanvas" hidden></canvas><div class="viewer-empty" id="resultEmpty"><div class="empty-circle">◉</div><p>Load a frame and a reference,<br>then create your grade.</p></div><span class="viewer-label" id="viewerLabel" hidden>GRADED</span></div>
+<div class="viewer-toolbar"><div class="view-toggles" role="group" aria-label="Preview mode"><button id="graded" class="selected">Graded</button><button id="before">Original</button><button id="split">Split</button></div><span class="meta" id="resultInfo">No preview yet</span><span class="meta" id="renderTime">—</span></div>
+<div class="split-control" id="splitControl" hidden><label for="wipe">Compare</label><input id="wipe" type="range" min="0" max="100" value="50"></div>
+<div class="recipe-strip"><div><strong id="gradeTitle">A clean slate</strong><small id="gradeDescription">Every adjustment stays editable in your saved grade.</small></div><span class="chip" id="gradeChip">NO MATCH YET</span></div>
 </section>
-<section class="result-zone">
-<div class="section-heading"><h2><span class="number">03</span> The new direction</h2><span class="muted" id="resultInfo">READY WHEN YOU ARE</span></div>
-<div class="viewer" id="viewer"><canvas id="resultCanvas" hidden></canvas><div class="viewer-empty" id="resultEmpty"><div class="empty-circle">◉</div><h3>Your next look starts here.</h3><p>Import a source frame and a reference,<br>then create your grade.</p></div><span class="viewer-label" id="viewerLabel" hidden>GRADED</span><div class="viewer-corner">ODY / COLOR LAB</div></div>
-<div class="viewer-toolbar"><div class="view-toggles"><button id="graded" class="selected">Graded</button><button id="before">Original</button><button id="split">Split view</button></div><div class="toolbar-right"><span id="renderTime">—</span><button id="exportPng" disabled>Save still ↗</button></div></div>
-<div class="split-control" id="splitControl" hidden><label for="wipe">Compare position</label><input id="wipe" type="range" min="0" max="100" value="50"></div>
-<div class="recipe-strip"><span class="recipe-symbol">✦</span><div><strong id="gradeTitle">A clean slate</strong><small id="gradeDescription">Every adjustment stays editable in your saved grade.</small></div><span class="recipe-chip" id="gradeChip">NO MATCH YET</span></div>
-<div class="output-grid"><div><div class="eyebrow">TAKE THE LOOK WITH YOU</div><h3>One look. Your whole scene.</h3><p>Export the color transform for your editor.<br>Keep a recipe to continue shaping it later.</p></div><div class="export-controls"><label for="lutSize">LUT precision</label><select id="lutSize"><option value="17">17³ · quick</option><option value="33" selected>33³ · standard</option><option value="65">65³ · high</option></select><button class="primary" id="exportLut" disabled>Export .cube ↗</button></div></div>
-<div class="notice">LUT export includes the selected source-profile conversion and color adjustments, with sRGB output. Spatial film effects require the native effect or still export.</div>
-<button class="primary" id="applyNative" disabled>Apply to selected clips</button> <button id="exportNative" disabled>Save native grade (.odyn)</button><p class="input-note">In Effect Controls, use OdyGrade → Reference grade to load this file. The grade is stored in the project; film controls remain editable.</p>
-</section>
+<div class="steps-col">
+<details class="step" id="stepFrame" open><summary><span class="step-no">1</span> Frame <span class="step-state" id="stepFrameState">Not loaded</span></summary>
+<div class="step-body">
+<button class="dropzone" id="sourceDrop" aria-label="Import source frames"><canvas id="sourceCanvas" hidden></canvas><span class="drop-content" id="sourceEmpty"><span class="upload-icon">＋</span><strong>Drop frames from one shot</strong><small>1–32 PNG, JPG or WebP stills</small></span><span class="image-tag" id="sourceTag" hidden>SOURCE</span></button>
+<div class="row-meta"><span id="sourceInfo">PNG / JPG / WEBP</span><button id="demo" class="link-button">Try sample frames</button></div>
+<div id="shotControls" class="shot-controls" hidden><label for="shotFrame">Preview frame</label><div class="shot-navigation"><button id="previousFrame" aria-label="Previous frame">←</button><select id="shotFrame"></select><button id="nextFrame" aria-label="Next frame">→</button></div><p class="help" id="shotHelp">All loaded frames guide one frozen grade.</p></div>
+<div class="button-row"><button id="capture">Capture Adobe frame</button><button id="auto">Auto balance</button></div>
+<label class="field-label" for="sourceProfile">Source camera / color profile</label><select id="sourceProfile"></select><p class="help" id="profileHelp">Choose the encoding of your source frame.</p>
+</div></details>
+<details class="step" id="stepReference" open><summary><span class="step-no">2</span> Reference <span class="step-state" id="stepReferenceState">Not loaded</span></summary>
+<div class="step-body">
+<button class="dropzone reference" id="referenceDrop" aria-label="Import reference frame"><canvas id="referenceCanvas" hidden></canvas><span class="drop-content" id="referenceEmpty"><span class="upload-icon">◈</span><strong>Drop a film still</strong><small>Screenshot or click to browse</small></span><span class="image-tag" id="referenceTag" hidden>REFERENCE</span></button>
+<button class="primary wide" id="match" disabled>✦ Create grade</button>
+<p class="help">Reference screenshots are sRGB. If your editor already converted LOG, pick sRGB above.</p>
+</div></details>
 </div>
-<div class="status-bar"><span class="online-dot"></span><span id="status" role="status" aria-live="polite">Start with your own frames or explore the samples.</span><span class="status-space">sRGB OUT / SDR</span></div>
-</main>
-<aside class="inspector"><div class="inspector-head"><h2>Make it yours</h2><button id="reset" class="text-button">Reset</button></div><div class="inspector-label">COLOR CONTROLS</div><label class="select-label" for="stock">Film stock</label><select id="stock"></select><div id="colorControls"></div>
-<details open><summary>Film module <span>10 TOOLS</span></summary><div id="filmControls"></div><label class="select-label" for="ratio">Frame ratio</label><select id="ratio"><option value="0">Original frame</option><option value="2.39">2.39:1 · scope</option><option value="1.85">1.85:1 · flat</option><option value="1.33">1.33:1 · academy</option></select><label class="select-label" for="gauge">Grain format</label><select id="gauge"><option value="0">Classic</option><option value="8">8 mm</option><option value="16">16 mm</option><option value="35">35 mm</option><option value="65">65 mm</option></select><label class="select-label" for="format">Film format</label><select id="format"><option value="0">Off</option><option value="1">Regular 8</option><option value="2">Super 8</option><option value="3">16 mm</option><option value="4">Super 16</option><option value="5">35 mm</option><option value="6">IMAX</option></select><label class="select-label" for="perfs">Perforations</label><select id="perfs"><option value="0">Off</option><option value="1">On</option></select></details>
-<div class="inspector-note"><strong>A direction, not a duplicate.</strong><p>Lighting and production design shape a film's image, too. Start with a match, then trust your eye.</p></div>
-</aside></div>
+<aside class="adjust-col">
+<details class="step" id="stepAdjust" open><summary><span class="step-no">3</span> Adjust <button id="reset" class="link-button push" type="button">Reset</button></summary>
+<div class="step-body">
+<div class="field-label">Look</div><div id="looks" class="looks"></div>
+<label class="field-label" for="stock">Film stock</label><select id="stock"></select>
+<div id="colorControls" class="controls"></div>
+<details class="sub" open><summary>Film module</summary>
+<div id="filmControls" class="controls"></div>
+<div class="select-grid">
+<label>Frame ratio<select id="ratio"><option value="0">Original</option><option value="2.39">2.39:1 scope</option><option value="1.85">1.85:1 flat</option><option value="1.33">1.33:1 academy</option></select></label>
+<label>Grain format<select id="gauge"><option value="0">Classic</option><option value="8">8 mm</option><option value="16">16 mm</option><option value="35">35 mm</option><option value="65">65 mm</option></select></label>
+<label>Film format<select id="format"><option value="0">Off</option><option value="1">Regular 8</option><option value="2">Super 8</option><option value="3">16 mm</option><option value="4">Super 16</option><option value="5">35 mm</option><option value="6">IMAX</option></select></label>
+<label>Perforations<select id="perfs"><option value="0">Off</option><option value="1">On</option></select></label>
+</div>
+</details>
+</div></details>
+</aside>
+</div>
+<footer class="action-bar" id="actionBar">
+<div class="status-line"><span class="dot"></span><span id="status" role="status" aria-live="polite">Start with your own frames or try the samples.</span></div>
+<div class="actions">
+<button class="primary" id="applyNative" disabled title="Apply the OdyGrade effect with this grade to the selected clips or layers">Apply to selected clips</button>
+<div class="lut-group"><select id="lutSize" aria-label="LUT precision" title="LUT precision"><option value="17">17³</option><option value="33" selected>33³</option><option value="65">65³</option></select><button id="exportLut" disabled title="LUT includes the source-profile conversion and color adjustments (sRGB out). Film effects need the native effect or still export.">Export .cube</button></div>
+<button id="exportNative" disabled title="Load in Effect Controls with OdyGrade → Reference grade">Save .odyn</button>
+<button id="exportPng" disabled>Save still</button>
+</div>
+</footer>
 <input id="sourceInput" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden><input id="referenceInput" type="file" accept="image/png,image/jpeg,image/webp" hidden><input id="recipeInput" type="file" accept=".json,.odygrade" hidden>
 <script src="src/color-management.js"></script><script src="src/engine.js"></script><script src="src/film.js"></script><script src="src/native-recipe.js"></script><script src="src/bridge.js"></script><script src="src/app.js"></script>
 </body></html>

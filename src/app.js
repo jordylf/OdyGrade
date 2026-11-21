@@ -19,7 +19,14 @@ var colors={
  coast:["#306370","#d7c29d"],earth:["#514936","#c8a66c"],cyan:["#205c68","#ce9261"],velvet:["#4d365f","#be9f88"]};
 function status(text,error){$("status").textContent=text;$("status").parentElement.classList.toggle("error",!!error);}
 function fail(e){status(e.message||String(e),true);}
+// Step summaries show progress so folded steps still tell the user where they are.
+function stepStates(){
+ var frames=state.sourceFrames.length,f=$("stepFrameState"),r=$("stepReferenceState");
+ f.textContent=frames?frames+" frame"+(frames===1?"":"s"):"Not loaded";f.classList.toggle("done",!!frames);
+ r.textContent=state.model?"Matched":state.reference?"Loaded":"Not loaded";r.classList.toggle("done",!!(state.model||state.reference));
+}
 function buttons(){
+ stepStates();
  Array.prototype.forEach.call(document.querySelectorAll('button,input,select'),function(el){el.disabled=state.busy;});
  $("match").disabled=!state.source||!state.reference||state.busy;
  ["exportLut","exportPng"].forEach(function(k){$(k).disabled=!state.source||state.busy;});
@@ -264,7 +271,7 @@ $("auto").addEventListener("click",async function(){
 Object.keys(E.STOCKS).forEach(function(k){var o=document.createElement("option");o.value=k;o.textContent=E.STOCKS[k].name;$("stock").appendChild(o);});
 $("stock").addEventListener("change",function(){state.settings=Object.assign({},state.settings,{stock:this.value});requestRender().catch(fail);});
 ["ratio","gauge","format","perfs"].forEach(function(id){$(id).addEventListener("change",function(){state.film[id]=Number(this.value);requestRender().catch(fail);});});
-$("reset").addEventListener("click",function(){state.off={};state.settings=E.settings({inputProfile:state.settings.inputProfile});state.film=F.normalize();state.model=null;state.analysis=null;state.recipeLoaded=false;sync();requestRender().catch(fail);status("Color and film controls reset. Source profile retained.");});
+$("reset").addEventListener("click",function(e){e.preventDefault();state.off={};state.settings=E.settings({inputProfile:state.settings.inputProfile});state.film=F.normalize();state.model=null;state.analysis=null;state.recipeLoaded=false;sync();requestRender().catch(fail);status("Color and film controls reset. Source profile retained.");});
 $("shotFrame").addEventListener('change',function(){selectSource(Number(this.value));});
 $("previousFrame").addEventListener('click',function(){selectSource(state.activeFrame-1);});
 $("nextFrame").addEventListener('click',function(){selectSource(state.activeFrame+1);});
