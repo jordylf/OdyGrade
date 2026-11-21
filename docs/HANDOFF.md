@@ -2,7 +2,22 @@
 Updated: 2026-11-22 (Asia/Jakarta)
 
 
-## Latest checkpoint — CEP panel installed for this user (Claude, 2026-11-22)
+## Latest checkpoint — core render performance (Claude, 2026-11-22)
+
+- native/src/core.cpp: per-frame lookups/constants resolved once (`prepare`: look, profile,
+  stock, exposure/WB gains; stock_for + a std::string allocation used to run per pixel), and
+  `parallel_rows` splits the colour loop, final film/output loop, blur and weave shift over
+  hardware_concurrency threads (rows/columns independent; worker exceptions rethrown).
+- Same math, same evaluation order: 1080x1920 rgba8 output byte-identical to the previous
+  build for colour-only and colour+film (cmp). npm test 60/60; Adobe harness PASS.
+- CLI timing, 1080x1920, 20 cores, incl. process start + 8 MB pipes each way:
+  colour (LogC3 + match + Chrome stock) 1215 -> ~180 ms; colour + film (grain, bloom,
+  halation, format/weave/dust/perfs) 1472 -> ~255 ms.
+- New .aex built (.adobe-build/adobe/Release), NOT installed yet (needs hosts closed).
+  Not measured in-host; AE Multi-Frame Rendering may run several frames at once, so
+  per-frame threads can oversubscribe (still correct).
+
+## Previous checkpoint — CEP panel installed for this user (Claude, 2026-11-22)
 
 - `npm run package` + `tools/install-dev.ps1` (no -EnableDebug; PlayerDebugMode=1 was already set)
   -> %APPDATA%\Adobe\CEP\extensions\com.odyworks.odygrade (unsigned dev build, not a ZXP).

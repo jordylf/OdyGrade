@@ -5,7 +5,9 @@
 #include <cmath>
 #include <cstring>
 #include <limits>
+#include <exception>
 #include <stdexcept>
+#include <thread>
 #include <vector>
 
 namespace odygrade {
@@ -32,11 +34,12 @@ Color from_lab(Color c) {
         encode(-1.2684380046*l+2.6097574011*m-0.3413193965*s),
         encode(-0.0041960863*l-0.7034186147*m+1.707614701*s)};
 }
-Color correct(Color c,const Settings& s) {
-    const auto gain=std::pow(2,s.exposure);
-    return {encode(decode(c[0])*gain*std::pow(2,s.temperature*.35+s.tint*.12)),
-        encode(decode(c[1])*gain*std::pow(2,-s.tint*.24)),
-        encode(decode(c[2])*gain*std::pow(2,-s.temperature*.35+s.tint*.12))};
+struct Gains { double gain,r,g,b; };
+Gains gains_for(const Settings& s) {
+    return {std::pow(2,s.exposure),std::pow(2,s.temperature*.35+s.tint*.12),std::pow(2,-s.tint*.24),std::pow(2,-s.temperature*.35+s.tint*.12)};
+}
+Color correct(Color c,const Gains& k) {
+    return {encode(decode(c[0])*k.gain*k.r),encode(decode(c[1])*k.gain*k.g),encode(decode(c[2])*k.gain*k.b)};
 }
 const Look& look_for(const std::string& key) {
     for(const auto& look:kLooks)if(key==look.key)return look;
@@ -48,7 +51,7 @@ const Stock& stock_for(const std::string& key) {
 }
 // Mirrors stock() in src/engine.js.
 Color apply_stock(Color c,const Stock& k,double amount) {
-    if(amount<=0||std::string(k.key)=="none")return c;
+    if(amount<=0||std::strcmp(k.key,"none")==0)return c;
     constexpr double bands[3]={.9,2.5,-1.7},pi=3.14159265358979323846;
     const auto L=clamp(c[0]),p=std::pow(L,k.curve[0]),y=p/(p+std::pow(1-L,k.curve[0]));
     const auto l=k.curve[1]+(k.curve[2]-k.curve[1])*y;
@@ -147,8 +150,13 @@ double skin_weight(Color c) {
     return smooth(.2,.45,c[0])*(1-smooth(.85,.98,c[0]))*
         std::exp(-std::pow((hue-.8)/.45,2))*smooth(.015,.06,chroma);
 }
-Color apply_color(Color rgb,const Recipe& r,const Look& look,const InputProfile& profile) {
-    const auto& s=r.settings;const auto base=to_lab(correct(normalize_input(rgb,profile),s));auto c=base;
+// Lookups and per-frame constants resolved once per render, not per pixel.
+struct Prepared { const Look& look; const InputProfile& profile; const Stock& stock; Gains gains; };
+Prepared prepare(const Recipe& r) {
+    const auto& s=r.settings;return {look_for(s.look),profile_for(s.input_profile),stock_for(s.stock),gains_for(s)};
+}
+Color apply_color(Color rgb,const Recipe& r,const Prepared& p) {
+    const auto& s=r.settings;const auto& look=p.look;const auto base=to_lab(correct(normalize_input(rgb,p.profile),p.gains));auto c=base;
     if(r.model.enabled&&s.strength>0) {
         const auto& source=r.model.source;const auto& ref=r.model.reference;
         const auto sc=zone_color(c[0],source,source.quantiles[4]);
@@ -165,7 +173,7 @@ Color apply_color(Color rgb,const Recipe& r,const Look& look,const InputProfile&
     c[1]=c[1]*sat+mix(look.shadow[0],look.highlight[0],t);
     c[2]=c[2]*sat+mix(look.shadow[1],look.highlight[1],t);
     c[0]=(c[0]-.5)*s.contrast*look.contrast+.5;
-    c=apply_stock(c,stock_for(s.stock),s.stock_amount);
+    c=apply_stock(c,p.stock,s.stock_amount);
     c[0]=s.fade+(1-s.fade)*c[0];
     if(s.shoulder>0&&c[0]>.65)c[0]=mix(c[0],.65+.35*(1-std::exp(-(c[0]-.65)/.35)),s.shoulder);
     auto result=from_lab(c);for(auto& v:result)v=clamp(v);return result;
@@ -207,22 +215,32 @@ void check_frame(const void* data,int w,int h,std::ptrdiff_t stride,PixelFormat 
     if(std::abs(stride)>std::numeric_limits<std::ptrdiff_t>::max()/h)
         throw std::invalid_argument("Frame stride overflow");
 }
+// Splits rows over the cores; each row is independent, so output is identical to one thread.
+template<class F> void parallel_rows(int h,F&& body) {
+    const auto cores=std::max(1u,std::thread::hardware_concurrency());
+    const auto n=static_cast<int>(std::min<unsigned>(cores,static_cast<unsigned>((h+31)/32)));
+    if(n<=1){body(0,h);return;}
+    std::vector<std::thread> workers;std::vector<std::exception_ptr> errors(n);
+    for(int t=0;t<n;++t)workers.emplace_back([&,t]{try{body(h*t/n,h*(t+1)/n);}catch(...){errors[t]=std::current_exception();}});
+    for(auto& w:workers)w.join();
+    for(auto& e:errors)if(e)std::rethrow_exception(e);
+}
 std::vector<float> blur(const std::vector<float>& in,int w,int h,int radius) {
     std::vector<float> temp(in.size()),out(in.size());const auto count=2*radius+1;
-    for(int y=0;y<h;++y)for(int c=0;c<3;++c) {
+    parallel_rows(h,[&](int r0,int r1){for(int y=r0;y<r1;++y)for(int c=0;c<3;++c) {
         double sum=0;for(int k=-radius;k<=radius;++k)sum+=in[(y*w+std::clamp(k,0,w-1))*3+c];
         for(int x=0;x<w;++x) {
             temp[(y*w+x)*3+c]=static_cast<float>(sum/count);
             sum+=in[(y*w+std::min(w-1,x+radius+1))*3+c]-in[(y*w+std::max(0,x-radius))*3+c];
         }
-    }
-    for(int x=0;x<w;++x)for(int c=0;c<3;++c) {
+    }});
+    parallel_rows(w,[&](int x0,int x1){for(int x=x0;x<x1;++x)for(int c=0;c<3;++c) {
         double sum=0;for(int k=-radius;k<=radius;++k)sum+=temp[(std::clamp(k,0,h-1)*w+x)*3+c];
         for(int y=0;y<h;++y) {
             out[(y*w+x)*3+c]=static_cast<float>(sum/count);
             sum+=temp[(std::min(h-1,y+radius+1)*w+x)*3+c]-temp[(std::max(0,y-radius)*w+x)*3+c];
         }
-    }
+    }});
     return out;
 }
 // Film gauge / format tables and helpers: equation-for-equation mirror of src/film.js.
@@ -288,13 +306,13 @@ double perforation(const Format& f,int x,int y,int w,int h) {
 }
 std::vector<std::array<double,4>> shift(const std::vector<std::array<double,4>>& d,int w,int h,double dx,double dy) {
     std::vector<std::array<double,4>> out(d.size());
-    for(int y=0;y<h;++y)for(int x=0;x<w;++x) {
+    parallel_rows(h,[&](int r0,int r1){for(int y=r0;y<r1;++y)for(int x=0;x<w;++x) {
         const auto sx=std::clamp(x-dx,0.0,w-1.0),sy=std::clamp(y-dy,0.0,h-1.0);
         const auto x0=static_cast<int>(sx),y0=static_cast<int>(sy),x1=std::min(w-1,x0+1),y1=std::min(h-1,y0+1);const auto u=sx-x0,v=sy-y0;
         const auto& a=d[static_cast<std::size_t>(y0)*w+x0];const auto& b=d[static_cast<std::size_t>(y0)*w+x1];
         const auto& e=d[static_cast<std::size_t>(y1)*w+x0];const auto& g=d[static_cast<std::size_t>(y1)*w+x1];
         for(int c=0;c<4;++c)out[static_cast<std::size_t>(y)*w+x][c]=(a[c]+(b[c]-a[c])*u)*(1-v)+(e[c]+(g[c]-e[c])*u)*v;
-    }
+    }});
     return out;
 }
 } // namespace
@@ -337,7 +355,7 @@ void validate(const Recipe& r) {
 }
 Color transform(Color color,const Recipe& recipe) {
     validate(recipe);for(auto v:color)if(!std::isfinite(v))throw std::invalid_argument("Nonfinite input color");
-    return apply_color(color,recipe,look_for(recipe.settings.look),profile_for(recipe.settings.input_profile));
+    return apply_color(color,recipe,prepare(recipe));
 }
 void render(const ConstFrame& input,const Frame& output,const Recipe& recipe,std::uint64_t frame_index,double pixel_aspect) {
     validate(recipe);
@@ -346,16 +364,16 @@ void render(const ConstFrame& input,const Frame& output,const Recipe& recipe,std
     check_frame(output.data,output.width,output.height,output.row_bytes,output.format,output.alpha);
     if(input.width!=output.width||input.height!=output.height)throw std::invalid_argument("Frame size mismatch");
     const auto w=input.width,h=input.height;const auto in_layout=layout(input.format),out_layout=layout(output.format);
-    const auto& look=look_for(recipe.settings.look);const auto& profile=profile_for(recipe.settings.input_profile);const auto& film=recipe.film;
+    const auto prepared=prepare(recipe);const auto& film=recipe.film;
     std::vector<std::array<double,4>> pixels(static_cast<std::size_t>(w)*h);
-    for(int y=0;y<h;++y)for(int x=0;x<w;++x) {
+    parallel_rows(h,[&](int r0,int r1){for(int y=r0;y<r1;++y)for(int x=0;x<w;++x) {
         const auto p=static_cast<const std::uint8_t*>(input.data)+y*input.row_bytes+x*pixel_bytes(input.format);
         const auto alpha=clamp(read_scalar(p+in_layout.channels[3]*in_layout.scalar_bytes,in_layout));
         Color c{};for(int k=0;k<3;++k)c[k]=read_scalar(p+in_layout.channels[k]*in_layout.scalar_bytes,in_layout);
         if(input.alpha==AlphaMode::Premultiplied)for(auto& v:c)v=alpha>0?v/alpha:0;
-        c=apply_color(c,recipe,look,profile);
+        c=apply_color(c,recipe,prepared);
         pixels[static_cast<std::size_t>(y)*w+x]={c[0],c[1],c[2],alpha};
-    }
+    }});
     const auto fmt=format_pass(film,w,h,frame_index);
     if(fmt.dx||fmt.dy)pixels=shift(pixels,w,h,fmt.dx,fmt.dy);
     std::vector<float> light;
@@ -374,7 +392,7 @@ void render(const ConstFrame& input,const Frame& output,const Recipe& recipe,std
     const auto seed=static_cast<double>(frame_index%1048576)*19.193;const auto gauge=gauge_for(film.gauge);
     const auto cell=gauge?std::max(.5,std::min(w,h)/1080.0*gauge->size*std::pow(film.iso/200,.35)):1.0;
     const auto amp=gauge?film.grain*32*gauge->amplitude*std::sqrt(film.iso/200):0.0;
-    for(int y=0;y<h;++y)for(int x=0;x<w;++x) {
+    parallel_rows(h,[&](int r0,int r1){for(int y=r0;y<r1;++y)for(int x=0;x<w;++x) {
         const auto i=static_cast<std::size_t>(y)*w+x;const auto& c=pixels[i];
         const auto dx=(x+.5)/w-.5,dy=(y+.5)/h-.5;
         const auto vignette=1-film.vignette*std::min(1.0,std::pow((dx*dx+dy*dy)*2,1.2));
@@ -400,6 +418,6 @@ void render(const ConstFrame& input,const Frame& output,const Recipe& recipe,std
             write_scalar(p+out_layout.channels[k]*out_layout.scalar_bytes,out_layout,v);
         }
         write_scalar(p+out_layout.channels[3]*out_layout.scalar_bytes,out_layout,c[3]);
-    }
+    }});
 }
 } // namespace odygrade
