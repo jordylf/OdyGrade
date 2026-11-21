@@ -2,7 +2,7 @@
 Updated: 2026-11-21 (Asia/Jakarta)
 
 
-## Latest checkpoint — Camera LOG profiles (Claude, 2026-11-22, not yet installed)
+## Latest checkpoint — Camera LOG profiles (Claude, 2026-11-22, dev.13 installed, AE verified)
 
 - Six new input profiles (src/color-management.js transfer 4-9, mirrored in core.cpp decode_input):
   ARRI LogC3 EI800/AWG3, Canon C-Log3/Cinema Gamut, Fujifilm F-Log/F-Gamut, DJI D-Log/D-Gamut,
@@ -10,7 +10,11 @@ Updated: 2026-11-21 (Asia/Jakarta)
 - Panel lists them automatically; "Samples" falls back to the sRGB sample for profiles without one.
 - Tests 60/60 (inverse vs independent encode, published gray points and matrices, neutrals,
   native parity). Real-frame round trip (encode to each log, decode natively): midtones mean
-  0.05/255 (runs/logs-20261122-013553, sheet.jpg). Not done: install dev.13 + real camera clips.
+  0.05/255 (runs/logs-20261122-013553, sheet.jpg).
+- Installed 0.4.0-dev.13-log (sha 09d5ff57...; dev.12 backup OdyGrade.dev12.aex.bak). AE 2024 live
+  (empty untitled project, nothing saved/closed; runs/log-ae-20261122-014039): LogC3-encoded still,
+  grade arri-logc3-awg3 + Amber Hour, embedded (link -7221): AE == offline (mean 0.005/255, max 0.1).
+- Not done: real camera LOG clips vs manufacturer LUTs; Premiere check (same core path).
 
 ## Earlier checkpoint — Film stock presets (Claude, 2026-11-21, dev.12 installed, AE + Premiere verified)
 
