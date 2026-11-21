@@ -10,7 +10,12 @@ Updated: 2026-11-22 (Asia/Jakarta)
   "OdyGrade - Reference Color".
 - Live AE 24.6.2 (after restart): Window > Extensions lists it, panel opens, host label
   "Adobe 24.6.2", Film stock select, Stock amount and per-tool On switches visible.
-  Premiere needs a restart to list it (not opened this checkpoint).
+- Live Premiere 24.6.1: Extensions menu is disabled with no project, so a new empty scratch
+  project work/adobe-host/runs/ppro-stock-20261122-012818/odygrade-panel-check.prproj was
+  created (no user project touched). Panel opens, host label "Adobe 24.6.1", Film stock,
+  Stock amount, On switches and Film module visible. Installed src/*.js and index.html are
+  byte-identical to source (all 9 input profiles present). CEP <select> popups render in a
+  separate cephtmlengine window that computer-use screenshots mask.
 
 ## Previous checkpoint — per-tool On switches (Claude, 2026-11-22, panel only)
 
