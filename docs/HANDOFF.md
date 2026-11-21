@@ -16,6 +16,9 @@ Updated: 2026-11-22 (Asia/Jakarta)
 - Browser check 380/760/1280 px: no horizontal scroll, action bar at the bottom edge,
   sample -> Create grade -> slider re-render OK, no console errors. Installed panel files
   updated; reopened in AE 24.6.2: new layout loads, status "Adobe connected".
+- Premiere 24.6.1 (scratch project odygrade-panel-check): new layout loads (3-column view),
+  sample frames -> Create grade: steps show "1 frame"/"Matched", Apply to selected clips
+  enabled (host present). Apply itself not clicked (no clips in the scratch project).
 
 ## Previous checkpoint — core render performance (Claude, 2026-11-22)
 
