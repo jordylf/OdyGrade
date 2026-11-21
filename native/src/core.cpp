@@ -72,6 +72,16 @@ double decode_input(double x,int transfer) {
     if(transfer==2)return x>=171.2102946929/1023?
         std::pow(10,(x*1023-420)/261.5)*.19-.01:(x*1023-95)*.01125/(171.2102946929-95);
     if(transfer==3)return x<.181?(x-.125)/5.6:std::pow(10,(x-.598206)/.241514)-.00873;
+    // 4-9 mirror src/color-management.js decode(): LogC3 EI800, C-Log3, F-Log, D-Log, Apple Log, BMD Film Gen 5.
+    if(transfer==4)return x>.149658?(std::pow(10,(x-.385537)/.24719)-.052272)/5.555556:(x-.092809)/5.367655;
+    if(transfer==5)return .9*(x<.097465473?-(std::pow(10,(.12783901-x)/.36726845)-1)/14.98325:
+        x<=.15277891?(x-.12512219)/1.9754798:(std::pow(10,(x-.12240537)/.36726845)-1)/14.98325);
+    if(transfer==6)return x<.100537775223865?(x-.092864)/8.735631:std::pow(10,(x-.790453)/.344676)/.555556-.009468/.555556;
+    if(transfer==7)return x<=.14?(x-.0929)/6.025:(std::pow(10,3.89616*x-2.27752)-.0108)/.9892;
+    if(transfer==8){const auto pt=47.28711236*std::pow(.01+.05641088,2);
+        return x>=pt?std::pow(2,(x-.69336945)/.08550479)-.00964052:x>=0?std::sqrt(x/47.28711236)-.05641088:-.05641088;}
+    if(transfer==9)return x<8.283605932402494*.005+.09246575342465753?(x-.09246575342465753)/8.283605932402494:
+        std::exp((x-.5300133392291939)/.08692876065491224)-.005494072432257808;
     throw std::invalid_argument("Unsupported transfer function");
 }
 Color normalize_input(Color rgb,const InputProfile& profile) {

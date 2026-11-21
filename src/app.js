@@ -331,6 +331,7 @@ $("demo").addEventListener("click",async function(){
   var sampleFiles={srgb:'sample-source.png','rec709-gamma24':'sample-gamma24.png',
    'sony-slog3-sgamut3cine':'sample-slog3.png','panasonic-vlog-vgamut':'sample-vlog.png'};
   state.model=null;state.analysis=null;state.recipeLoaded=false;state.settings=E.settings({inputProfile:profile});state.film=F.normalize();sync();
+  if(!sampleFiles[profile]){profile='srgb';state.settings=E.settings({inputProfile:profile});sync();}  // no synthetic log sample for this camera
   await setImage("source","assets/"+sampleFiles[profile],"Synthetic sample · "+CM.PROFILES[profile].name);
   await setImage("reference","assets/sample-reference.png","Synthetic sample reference");
   status("Synthetic sample frames loaded. Press Create grade to explore matching.");

@@ -12,6 +12,12 @@ would normalize the material twice.
 | `rec709-gamma24` | Full-range RGB with Rec.709 primaries, ideal-black gamma 2.4 display encoding. Not the camera BT.709 OETF or arbitrary monitor black compensation. |
 | `sony-slog3-sgamut3cine` | Full-range S-Log3 code values with standard S-Gamut3.Cine primaries. Not S-Gamut3, S-Log2 or VENICE variants. |
 | `panasonic-vlog-vgamut` | Full-range V-Log code values with V-Gamut primaries. No inferred camera model, legal-range conversion or metadata detection. |
+| `arri-logc3-awg3` | Full-range ARRI LogC3 (EI 800, SUP 3.x) with ARRI Wide Gamut 3. Other EI curves and LogC4/AWG4 are not covered. |
+| `canon-clog3-cinemagamut` | Full-range Canon C-Log3 (v1.2 formula) with Cinema Gamut, decoded to scene reflection (x0.9). |
+| `fujifilm-flog-fgamut` | Full-range Fujifilm F-Log (not F-Log2) with F-Gamut (Rec.2020 primaries). |
+| `dji-dlog-dgamut` | Full-range DJI D-Log with D-Gamut. Not D-Log M. |
+| `apple-log-rec2020` | Apple Log (iPhone) with Rec.2020 primaries. |
+| `blackmagic-film5-wg5` | Blackmagic Film Generation 5 with Blackmagic Wide Gamut Gen 5 (D65 used as white; BMD publishes 0.312717, 0.3290312). |
 
 PNG/JPEG/WebP import uses browser-decoded values. This is not RAW decoding or an ICC
 profile engine. Host captures may already contain a display/color transform; choose
@@ -43,6 +49,14 @@ documented black/gray/white values and D65 neutral preservation.
 The gamma 2.4 display profile is the ideal-black special case of BT.1886. No camera
 OETF decoding or configurable nonzero monitor black is implied.
 [ITU-R BT.1886](https://www.itu.int/dms_pubrec/itu-r/rec/bt/R-REC-BT.1886-0-201103-I!!PDF-E.pdf).
+
+Added 2026-11-22: ARRI LogC3, Canon C-Log3, Fujifilm F-Log, DJI D-Log, Apple Log and
+Blackmagic Film Gen 5. Curves and primaries are the manufacturers' published values as
+collected in colour-science (colour/models/rgb/transfer_functions and datasets, which cite
+each white paper). Tests check each decode against an independent forward formula,
+the published 18% gray code (LogC3 0.391, C-Log3 0.343, F-Log 470/1023), the published
+AWG3 / D-Gamut / BMD WG RGB->XYZ matrices, and D65 neutral preservation; native parity
+is covered for every profile.
 
 ## Our display rendering and its limits
 

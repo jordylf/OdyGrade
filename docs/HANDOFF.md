@@ -2,7 +2,17 @@
 Updated: 2026-11-21 (Asia/Jakarta)
 
 
-## Latest checkpoint — Film stock presets (Claude, 2026-11-21, dev.12 installed, AE + Premiere verified)
+## Latest checkpoint — Camera LOG profiles (Claude, 2026-11-22, not yet installed)
+
+- Six new input profiles (src/color-management.js transfer 4-9, mirrored in core.cpp decode_input):
+  ARRI LogC3 EI800/AWG3, Canon C-Log3/Cinema Gamut, Fujifilm F-Log/F-Gamut, DJI D-Log/D-Gamut,
+  Apple Log/Rec.2020, Blackmagic Film Gen 5/WG Gen 5. Sources and limits: docs/COLOR-MANAGEMENT.md.
+- Panel lists them automatically; "Samples" falls back to the sRGB sample for profiles without one.
+- Tests 60/60 (inverse vs independent encode, published gray points and matrices, neutrals,
+  native parity). Real-frame round trip (encode to each log, decode natively): midtones mean
+  0.05/255 (runs/logs-20261122-013553, sheet.jpg). Not done: install dev.13 + real camera clips.
+
+## Earlier checkpoint — Film stock presets (Claude, 2026-11-21, dev.12 installed, AE + Premiere verified)
 
 - Own film stock emulation (generic names, no manufacturer looks/trademarks): None, Tungsten 500,
   Daylight 250, Portrait 400, Chrome 100, Consumer 200, Cinema Print, Mono 400, Expired.
