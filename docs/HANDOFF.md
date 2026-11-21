@@ -2,7 +2,22 @@
 Updated: 2026-11-22 (Asia/Jakarta)
 
 
-## Latest checkpoint — core render performance (Claude, 2026-11-22)
+## Latest checkpoint — panel UX redesign (Claude, 2026-11-22)
+
+- Spec docs/superpowers/specs/2026-11-22-panel-ux-design.md, plan docs/superpowers/plans/2026-11-22-panel-ux.md.
+- index.html/src/style.css rewritten panel-first: slim header, preview first, foldable steps
+  (1 Frame, 2 Reference, 3 Adjust as <details>), action bar always at the bottom (status, Apply
+  to selected clips, LUT size + Export .cube, Save .odyn, Save still). Hero/sidebar copy removed.
+  Min text 11 px. Layouts: <640 px one column with sticky preview; 640-1099 preview+steps |
+  Adjust; >=1100 steps | preview | Adjust. All previous element ids kept.
+- app.js: stepStates() (called from buttons()) shows "N frames" / "Loaded" / "Matched";
+  Reset inside the step summary no longer folds the step.
+- tests/panel-ui.test.cjs pins ids, action bar, steps, min font, breakpoints; npm test 65/65.
+- Browser check 380/760/1280 px: no horizontal scroll, action bar at the bottom edge,
+  sample -> Create grade -> slider re-render OK, no console errors. Installed panel files
+  updated; reopened in AE 24.6.2: new layout loads, status "Adobe connected".
+
+## Previous checkpoint — core render performance (Claude, 2026-11-22)
 
 - native/src/core.cpp: per-frame lookups/constants resolved once (`prepare`: look, profile,
   stock, exposure/WB gains; stock_for + a std::string allocation used to run per pixel), and

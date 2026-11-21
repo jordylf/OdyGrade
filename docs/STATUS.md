@@ -1,6 +1,7 @@
 # OdyGrade implementation status
 
-Latest (Claude, 2026-11-22): core render multi-threaded, output byte-identical; 1080x1920 colour 1.2 s -> ~0.18 s, +film 1.5 s -> ~0.26 s (CLI). dev.14 installed; AE live == offline (max 0/255), effect ~0.4 s/frame at 1080x1920 16 bpc with full film.
+Latest (Claude, 2026-11-22): panel redesigned panel-first (sticky action bar, foldable steps, 3 responsive widths), tests 65/65, loads in AE.
+Earlier: core render multi-threaded, output byte-identical; 1080x1920 colour 1.2 s -> ~0.18 s, +film 1.5 s -> ~0.26 s (CLI). dev.14 installed; AE live == offline (max 0/255), effect ~0.4 s/frame at 1080x1920 16 bpc with full film.
 Earlier: CEP panel installed per-user; opens in AE 24.6.2 and Premiere 24.6.1 (menu name mojibake fixed).
 Earlier: per-tool On switches in the panel (off = neutral everywhere it exports).
 Earlier: camera LOG profiles added (ARRI LogC3, Canon C-Log3, F-Log, D-Log,
