@@ -1,7 +1,7 @@
 # OdyGrade implementation status
 
 Latest (Claude, 2026-11-22): dev.14 re-checked live: AE 32 bpc == offline (max 0.1/255; saveFrameToPng writes 1/10 values at 32 bpc), Premiere real clip with full film == offline at matching frame (mean 0.5/255).
-Also: independent review done; thread-start crash guard in core, two panel layout fixes at short heights (tests 66/66); rebuilt .aex not yet installed.
+Also: independent review done; thread-start crash guard in core, two panel layout fixes at short heights (tests 66/66); dev.15 installed (hash verified), not yet live-rendered.
 Earlier: panel redesigned panel-first (sticky action bar, foldable steps, 3 responsive widths), tests 65/65, loads in AE and Premiere.
 Earlier: core render multi-threaded, output byte-identical; 1080x1920 colour 1.2 s -> ~0.18 s, +film 1.5 s -> ~0.26 s (CLI). dev.14 installed; AE live == offline (max 0/255), effect ~0.4 s/frame at 1080x1920 16 bpc with full film.
 Earlier: CEP panel installed per-user; opens in AE 24.6.2 and Premiere 24.6.1 (menu name mojibake fixed).

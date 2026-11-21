@@ -26,7 +26,8 @@ Updated: 2026-11-22 (Asia/Jakarta)
     now >=140 px; preview row shrinks and scrolls). Reset moved out of the <summary>
     ("Reset all" next to Look). Step 2 shows "From saved grade" for an opened recipe.
     Browser re-check 300x400 / 700x400 / 1280x800 OK, no console errors; tests 66/66.
-    Installed panel files updated. .aex rebuilt with the fix (harness PASS), NOT installed.
+    Installed panel files updated. .aex with the fix installed 2026-11-22 as 0.4.0-dev.15-review
+    (sha 4ca1030e...ee02, hash verified; dev.14 backup OdyGrade.dev14.aex.bak). Not yet live-rendered.
 
 ## Earlier checkpoint — panel UX redesign (Claude, 2026-11-22)
 
