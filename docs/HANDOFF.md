@@ -13,7 +13,8 @@ Updated: 2026-11-22 (Asia/Jakarta)
 - CLI timing, 1080x1920, 20 cores, incl. process start + 8 MB pipes each way:
   colour (LogC3 + match + Chrome stock) 1215 -> ~180 ms; colour + film (grain, bloom,
   halation, format/weave/dust/perfs) 1472 -> ~255 ms.
-- New .aex built (.adobe-build/adobe/Release), NOT installed yet (needs hosts closed).
+- Installed as 0.4.0-dev.14-perf (sha256 c7b32b53...5193, install-result ok; dev.13 kept as
+  OdyGrade.dev13.aex.bak). Live AE/Premiere render of dev.14 not yet checked.
   Not measured in-host; AE Multi-Frame Rendering may run several frames at once, so
   per-frame threads can oversubscribe (still correct).
 
