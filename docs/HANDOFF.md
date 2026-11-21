@@ -27,7 +27,9 @@ Updated: 2026-11-22 (Asia/Jakarta)
     ("Reset all" next to Look). Step 2 shows "From saved grade" for an opened recipe.
     Browser re-check 300x400 / 700x400 / 1280x800 OK, no console errors; tests 66/66.
     Installed panel files updated. .aex with the fix installed 2026-11-22 as 0.4.0-dev.15-review
-    (sha 4ca1030e...ee02, hash verified; dev.14 backup OdyGrade.dev14.aex.bak). Not yet live-rendered.
+    (sha 4ca1030e...ee02, hash verified; dev.14 backup OdyGrade.dev14.aex.bak). AE 24 live (fresh start after install,
+    empty Untitled, panel-bridge apply, linked=1): runs/perf-ae-20261122/ae-graded-dev15.png ==
+    offline (mean 0.002/255, max 0) and == dev.14 AE frame (0.000).
 
 ## Earlier checkpoint — panel UX redesign (Claude, 2026-11-22)
 
