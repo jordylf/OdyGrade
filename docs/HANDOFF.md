@@ -2,7 +2,7 @@
 Updated: 2026-11-21 (Asia/Jakarta)
 
 
-## Latest checkpoint — Film stock presets (Claude, 2026-11-21, dev.12 installed, AE verified)
+## Latest checkpoint — Film stock presets (Claude, 2026-11-21, dev.12 installed, AE + Premiere verified)
 
 - Own film stock emulation (generic names, no manufacturer looks/trademarks): None, Tungsten 500,
   Daylight 250, Portrait 400, Chrome 100, Consumer 200, Cinema Print, Mono 400, Expired.
@@ -20,7 +20,9 @@ Updated: 2026-11-21 (Asia/Jakarta)
   AE 2024 live (empty untitled project, nothing saved/closed; runs/stock-ae-20261122-012637):
   OdyHost.apply ['Film stock',4,1] -> AE popup 5 (Chrome 100), amount 70, embedded (link -20052).
   Frame 0 == offline still-native (mean 0.002/255, max 0); vs same grade without stock 6.3/255.
-- Not done: Premiere live check of Film stock.
+- Premiere 24.6.1 live (runs/ppro-stock-20261122-012818, job "real" + params.txt, no Load click):
+  vs offline on Premiere's own src frames mean 0.55/255, max 26, ~1% px >3 (decode differences,
+  amplified by Chrome contrast; colour-only baseline 0.43); vs no-stock 6.3/255.
 
 ## Earlier checkpoint — Grain format + Film Format (Claude, 2026-11-21, dev.11 installed, AE + Premiere verified)
 
