@@ -2,7 +2,17 @@
 Updated: 2026-11-21 (Asia/Jakarta)
 
 
-## Latest checkpoint — Camera LOG profiles (Claude, 2026-11-22, dev.13 installed, AE verified)
+## Latest checkpoint — per-tool On switches (Claude, 2026-11-22, panel only)
+
+- Panel: each tool slider has an On checkbox (Look strength, Contrast, Saturation, Skin hue,
+  Faded black, Highlight softness, Stock amount, Grain, Bloom, Halation, Vignette, Bleach,
+  Gate weave, Flicker, Dust). Off = neutral value in preview, LUT, saved recipe, .odyn and Apply;
+  the slider keeps its value. Exposure/Temperature/Tint have no switch (tied to the match model).
+  Reset turns everything back on. src/app.js live()/NEUTRAL; no core, snapshot or effect change.
+- Browser check: off == value 0 exactly, slider value kept, back on == before exactly.
+- Not added: switches as AE/Premiere effect params (in the host, set the slider to 0 or toggle fx).
+
+## Earlier checkpoint — Camera LOG profiles (Claude, 2026-11-22, dev.13 installed, AE verified)
 
 - Six new input profiles (src/color-management.js transfer 4-9, mirrored in core.cpp decode_input):
   ARRI LogC3 EI800/AWG3, Canon C-Log3/Cinema Gamut, Fujifilm F-Log/F-Gamut, DJI D-Log/D-Gamut,

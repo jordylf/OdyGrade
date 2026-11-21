@@ -1,6 +1,7 @@
 # OdyGrade implementation status
 
-Latest (Claude, 2026-11-22): camera LOG profiles added (ARRI LogC3, Canon C-Log3, F-Log, D-Log,
+Latest (Claude, 2026-11-22): per-tool On switches in the panel (off = neutral everywhere it exports).
+Earlier: camera LOG profiles added (ARRI LogC3, Canon C-Log3, F-Log, D-Log,
 Apple Log, BMD Film Gen 5), tests 60/60; dev.13 installed, AE live == offline (LogC3).
 Earlier: Film stock presets (9, own emulation, snapshot v5, Adobe params
 "Film stock"/"Stock amount") added, tests 58/58, harness PASS; dev.12 installed, AE live == offline (max 0/255), Premiere live mean 0.55/255.
