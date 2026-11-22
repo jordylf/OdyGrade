@@ -34,7 +34,9 @@ struct Film {
     // 1..6 = Regular 8, Super 8, 16 mm, Super 16, 35 mm, IMAX. perfs is 0 or 1.
     double gauge{}, iso{200}, format{}, weave{}, flicker{}, dust{}, perfs{};
 };
-struct Recipe { Model model{}; Settings settings{}; Film film{}; };
+// trim: host exposure (stops), temperature, tint (-1..1) applied to the graded colour before film,
+// exactly like a second neutral pass but in the same sweep. Not part of the recipe file.
+struct Recipe { Model model{}; Settings settings{}; Film film{}; std::array<double,3> trim{}; };
 
 enum class PixelFormat { RGBA8, BGRA8, ARGB8, RGBA16, ARGB16, RGBA16AE, ARGB16AE,
                          RGBA32F, BGRA32F, ARGB32F };

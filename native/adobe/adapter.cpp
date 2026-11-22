@@ -98,7 +98,7 @@ struct PremierePixels {
  }
 };
 PF_Err global(PF_InData* in_data,PF_OutData* out_data){
- out_data->my_version=PF_VERSION(0,5,0,PF_Stage_RELEASE,0);
+ out_data->my_version=PF_VERSION(0,5,1,PF_Stage_RELEASE,0);
  out_data->out_flags=PF_OutFlag_DEEP_COLOR_AWARE|PF_OutFlag_NON_PARAM_VARY;
  // Multi-Frame Rendering: render only reads params and the arb handle; the shared pending
  // cache is mutex-guarded; no global or sequence data. Must match the PiPL OutFlags_2.
@@ -166,19 +166,9 @@ PF_Err render(PF_InData* in_data,PF_ParamDef* p[],PF_LayerDef* output){
  odygrade::Frame target{output->data,output->width,output->height,output->rowbytes,outputFormat,alpha};
  const auto frame=in_data->time_step?static_cast<std::int64_t>(std::floor(static_cast<double>(in_data->current_time)/std::abs(static_cast<double>(in_data->time_step)))):0;
  const double par=in_data->pixel_aspect_ratio.den?static_cast<double>(in_data->pixel_aspect_ratio.num)/in_data->pixel_aspect_ratio.den:1;
- // No post-match trims (the usual case): grade + film in one pass, same as the offline renderer.
- // A second neutral colour pass costs as much CPU as the grade itself.
- if(finishing.settings.exposure==0&&finishing.settings.temperature==0&&finishing.settings.tint==0){
-  base.film=finishing.film;odygrade::render(source,target,base,static_cast<std::uint64_t>(frame),par);
-  return PF_ABORT(in_data)?PF_Interrupt_CANCEL:PF_Err_NONE;
- }
- std::vector<float> intermediate(static_cast<std::size_t>(input.width)*input.height*4);
- const auto stride=static_cast<std::ptrdiff_t>(input.width)*16;
- odygrade::Frame stage{intermediate.data(),input.width,input.height,stride,odygrade::PixelFormat::RGBA32F,odygrade::AlphaMode::Straight};
- odygrade::render(source,stage,base);
- if(PF_ABORT(in_data))return PF_Interrupt_CANCEL;
- odygrade::ConstFrame stageInput{stage.data,stage.width,stage.height,stage.row_bytes,stage.format,stage.alpha};
- odygrade::render(stageInput,target,finishing,static_cast<std::uint64_t>(frame),par);
+ // Grade, post-match trims and film in one pass (trims == the former second neutral pass).
+ base.film=finishing.film;base.trim={finishing.settings.exposure,finishing.settings.temperature,finishing.settings.tint};
+ odygrade::render(source,target,base,static_cast<std::uint64_t>(frame),par);
  return PF_ABORT(in_data)?PF_Interrupt_CANCEL:PF_Err_NONE;
 }
 PF_Err link(PF_InData* in_data,PF_OutData* out_data,PF_ParamDef* p[]){

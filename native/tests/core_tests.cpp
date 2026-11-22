@@ -103,6 +103,22 @@ void test_temporal_and_transparent_glow() {
      go(all);set_thread_limit(1);go(single);set_thread_limit(0);require(all==single,"Thread limit changes output");}
 }
 }
+void test_trim_matches_two_passes() {// trims in one sweep == old host path: grade, then neutral trim pass + film
+    const int w=40,h=30;std::vector<float> in(w*h*4),stage(in.size()),two(in.size()),one(in.size());
+    for(std::size_t i=0;i<in.size();++i)in[i]=(i%4==3)?1.f:float((i*53)%241)/241.f;
+    Recipe base;base.settings.look="amber";base.settings.contrast=1.2;base.settings.saturation=1.3;
+    Recipe fin;fin.settings.exposure=.7;fin.settings.temperature=-.4;fin.settings.tint=.25;
+    fin.film.grain=.3;fin.film.bloom=.5;fin.film.vignette=.4;
+    const auto F=[&](std::vector<float>& v){return Frame{v.data(),w,h,w*16,PixelFormat::RGBA32F,AlphaMode::Straight};};
+    const ConstFrame src{in.data(),w,h,w*16,PixelFormat::RGBA32F,AlphaMode::Straight};
+    render(src,F(stage),base);render({stage.data(),w,h,w*16,PixelFormat::RGBA32F,AlphaMode::Straight},F(two),fin,5);
+    Recipe folded=base;folded.film=fin.film;folded.trim={.7,-.4,.25};render(src,F(one),folded,5);
+    double worst=0;for(std::size_t i=0;i<one.size();++i)worst=std::max(worst,double(std::abs(one[i]-two[i])));
+    require(worst<1e-5,"Folded trims differ from two passes");require(one!=stage,"Trim had no effect");
+    const auto c=transform({.3,.5,.2},folded),d=transform(transform({.3,.5,.2},base),fin);
+    for(int k=0;k<3;++k)close(c[k],d[k],1e-12,"transform ignores trim");
+    folded.trim={5,0,0};rejects([&]{validate(folded);},"Out-of-range trim accepted");
+}
 int main() {
     try {
         test_formats_and_padding();std::cout<<"PASS 10 pixel layouts and padding\n";
@@ -111,6 +127,7 @@ int main() {
         test_pixel_aspect_matte();std::cout<<"PASS pixel-aspect-aware matte\n";
         test_validation_is_before_writes();std::cout<<"PASS failure-before-write contracts\n";
         test_temporal_and_transparent_glow();std::cout<<"PASS temporal determinism, transparent glow and concurrency\n";
+        test_trim_matches_two_passes();std::cout<<"PASS trims folded into one pass\n";
         return 0;
     }catch(const std::exception& e){std::cerr<<"FAIL "<<e.what()<<'\n';return 1;}
 }

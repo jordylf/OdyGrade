@@ -3,6 +3,7 @@
 #include "profiles.hpp"
 #include <algorithm>
 #include <cmath>
+#include <optional>
 #include <cstring>
 #include <limits>
 #include <exception>
@@ -363,10 +364,18 @@ void validate(const Recipe& r) {
     if(f.format!=std::round(f.format)||f.format<0||f.format>=static_cast<double>(std::size(Formats)))throw std::invalid_argument("Unsupported film format");
     check_range(f.weave,0,1,"Invalid gate weave");check_range(f.flicker,0,1,"Invalid flicker");check_range(f.dust,0,1,"Invalid dust");
     if(f.perfs!=0&&f.perfs!=1)throw std::invalid_argument("Invalid perforation flag");
+    check_range(r.trim[0],-4,4,"Invalid exposure trim");check_range(r.trim[1],-1,1,"Invalid temperature trim");check_range(r.trim[2],-1,1,"Invalid tint trim");
+}
+namespace {
+std::optional<Recipe> trim_recipe(const Recipe& r) {
+    if(!r.trim[0]&&!r.trim[1]&&!r.trim[2])return std::nullopt;
+    Recipe t;t.settings.exposure=r.trim[0];t.settings.temperature=r.trim[1];t.settings.tint=r.trim[2];return t;
+}
 }
 Color transform(Color color,const Recipe& recipe) {
     validate(recipe);for(auto v:color)if(!std::isfinite(v))throw std::invalid_argument("Nonfinite input color");
-    return apply_color(color,recipe,prepare(recipe));
+    const auto t=trim_recipe(recipe);const auto c=apply_color(color,recipe,prepare(recipe));
+    return t?apply_color(c,*t,prepare(*t)):c;
 }
 void set_thread_limit(int threads){thread_limit=std::max(0,threads);}
 void render(const ConstFrame& input,const Frame& output,const Recipe& recipe,std::uint64_t frame_index,double pixel_aspect) {
@@ -377,12 +386,13 @@ void render(const ConstFrame& input,const Frame& output,const Recipe& recipe,std
     if(input.width!=output.width||input.height!=output.height)throw std::invalid_argument("Frame size mismatch");
     const auto w=input.width,h=input.height;const auto in_layout=layout(input.format),out_layout=layout(output.format);
     const auto prepared=prepare(recipe);const auto& film=recipe.film;
+    const auto trim=trim_recipe(recipe);const auto trimmed=prepare(trim?*trim:recipe);
     const auto graded=[&](int x,int y)->std::array<double,4>{
         const auto p=static_cast<const std::uint8_t*>(input.data)+y*input.row_bytes+x*pixel_bytes(input.format);
         const auto alpha=clamp(read_scalar(p+in_layout.channels[3]*in_layout.scalar_bytes,in_layout));
         Color c{};for(int k=0;k<3;++k)c[k]=read_scalar(p+in_layout.channels[k]*in_layout.scalar_bytes,in_layout);
         if(input.alpha==AlphaMode::Premultiplied)for(auto& v:c)v=alpha>0?v/alpha:0;
-        c=apply_color(c,recipe,prepared);
+        c=apply_color(c,recipe,prepared);if(trim)c=apply_color(c,*trim,trimmed);
         return {c[0],c[1],c[2],alpha};
     };
     const auto fmt=format_pass(film,w,h,frame_index);
