@@ -4,7 +4,19 @@ Updated: 2026-11-23 (Asia/Jakarta)
 
 
 
-## Latest checkpoint — Premiere export speed (Claude, 2026-11-23)
+## Latest checkpoint — 0.5.1 fast trims (Claude, 2026-11-23)
+
+- Recipe::trim (core.hpp) = exposure/temperature/tint applied to the graded colour in the same
+  sweep, before film; equals the old second neutral pass (core test max diff <1e-5). Adapter
+  always renders once. Loading a grade still resets the trims to 0 (set_snapshot, by design).
+- 0.5.1 everywhere (version test), outputs/OdyGrade-0.5.1-win64.zip (plugin sha256 52132FC6...),
+  installed from the zip via Install.ps1 (work/release-test-051).
+- AE 24.6.2 live (runs/trim-ae-20261123, empty Untitled project): same 1080x1920 full film grade
+  + trims +0.5 EV / +20 / -10, 120 frames 61.3 s (no trims 54.4 s; old two-pass dev.17 102.7 s).
+  Frame 10 mean RGB 90.8/85.0/80.8 -> 109.0/100.4/92.5, warmer (R-B 10.0 -> 16.5).
+- Kinetic ae_run_script_file refuses renderQueue.render() (UNSAFE system); use ae_render.
+
+## Previous checkpoint — Premiere export speed (Claude, 2026-11-23)
 
 - tools/ppro-host-smoke.jsx jobs "perf <dir>" (new scratch project, source.png, JPEG sequence
   export via exportAsMediaDirect) and "perfx <dir>" (reruns only on <dir>/ppro-perf.prproj).
