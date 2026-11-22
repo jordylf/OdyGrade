@@ -85,6 +85,10 @@ double decode_input(double x,int transfer) {
         return x>=pt?std::pow(2,(x-.69336945)/.08550479)-.00964052:x>=0?std::sqrt(x/47.28711236)-.05641088:-.05641088;}
     if(transfer==9)return x<8.283605932402494*.005+.09246575342465753?(x-.09246575342465753)/8.283605932402494:
         std::exp((x-.5300133392291939)/.08692876065491224)-.005494072432257808;
+    if(transfer==10){  // BT.2100 HLG inverse OETF, BT.2408 diffuse white (75%) = 1.0; mirrors color-management.js
+        constexpr double a=.17883277,b=1-4*a;const double c=.5-a*std::log(4*a);
+        const auto hlg=[&](double v){return v<=.5?v*std::abs(v)/3:(std::exp((v-c)/a)+b)/12;};
+        return hlg(x)/hlg(.75);}
     throw std::invalid_argument("Unsupported transfer function");
 }
 Color normalize_input(Color rgb,const InputProfile& profile) {

@@ -36,9 +36,12 @@
     'fujifilm-flog-fgamut':camera('Fujifilm F-Log / F-Gamut',6,'rec2020'),
     'dji-dlog-dgamut':camera('DJI D-Log / D-Gamut',7,'dgamut'),
     'apple-log-rec2020':camera('Apple Log / Rec.2020',8,'rec2020'),
-    'blackmagic-film5-wg5':camera('Blackmagic Film Gen 5 / Wide Gamut Gen 5',9,'bmdwg')
+    'blackmagic-film5-wg5':camera('Blackmagic Film Gen 5 / Wide Gamut Gen 5',9,'bmdwg'),
+    'hlg-rec2020':camera('HLG / Rec.2020 (iPhone HDR video)',10,'rec2020')
   };
   function profile(id){if(!Object.prototype.hasOwnProperty.call(PROFILES,id))throw Error('Unsupported input profile');return PROFILES[id];}
+  var HLG_A=.17883277,HLG_B=1-4*HLG_A,HLG_C=.5-HLG_A*Math.log(4*HLG_A);
+  function hlg(x){return x<=.5?x*Math.abs(x)/3:(Math.exp((x-HLG_C)/HLG_A)+HLG_B)/12;}
   function decode(x,transfer){
     if(transfer===0)return x<=.04045?x/12.92:Math.pow((x+.055)/1.055,2.4);
     if(transfer===1)return Math.pow(Math.max(0,x),2.4);
@@ -55,6 +58,7 @@
       return x>=pt?Math.pow(2,(x-.69336945)/.08550479)-.00964052:x>=0?Math.sqrt(x/47.28711236)-.05641088:-.05641088;}
     if(transfer===9)return x<8.283605932402494*.005+.09246575342465753?(x-.09246575342465753)/8.283605932402494:  // Blackmagic Film Gen 5
       Math.exp((x-.5300133392291939)/.08692876065491224)-.005494072432257808;
+    if(transfer===10)return hlg(x)/hlg(.75);  // BT.2100 HLG inverse OETF; BT.2408 diffuse white (75%) = 1.0
     throw Error('Unsupported transfer function');
   }
   function encodeSRGB(x){return x<=.0031308?12.92*x:1.055*Math.pow(x,1/2.4)-.055;}

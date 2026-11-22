@@ -18,6 +18,7 @@ test('V-Gamut matrix derived from primaries agrees with manufacturer matrix',()=
 });
 // Independent forward (encoding) formulas from the same manufacturer references; decode must invert them.
 const ENCODE={
+ 10:(()=>{const a=.17883277,b=1-4*a,c=.5-a*Math.log(4*a),W=(Math.exp((.75-c)/a)+b)/12;return x=>{const e=x*W;return e<=1/12?Math.sign(e)*Math.sqrt(3*Math.abs(e)):a*Math.log(12*e-b)+c;};})(),
  4:x=>x>.010591?.24719*Math.log10(5.555556*x+.052272)+.385537:5.367655*x+.092809,
  5:r=>{const x=r/.9;return x<-.014?-.36726845*Math.log10(1-14.98325*x)+.12783901:x<=.014?1.9754798*x+.12512219:.36726845*Math.log10(14.98325*x+1)+.12240537;},
  6:x=>x>=.00089?.344676*Math.log10(.555556*x+.009468)+.790453:8.735631*x+.092864,
@@ -38,7 +39,7 @@ test('derived camera gamut matrices agree with manufacturer RGB->XYZ matrices',(
  for(const k of Object.keys(published))CM.rgbToXYZ(primaries[k]).forEach((v,i)=>close(v,published[k][i],k==='awg3'?.0001:.0003));
 });
 test('camera transforms preserve D65 neutrals through gamut conversion',()=>{
- for(const [id,t] of [['arri-logc3-awg3',4],['canon-clog3-cinemagamut',5],['fujifilm-flog-fgamut',6],['dji-dlog-dgamut',7],['apple-log-rec2020',8],['blackmagic-film5-wg5',9]]){
+ for(const [id,t] of [['arri-logc3-awg3',4],['canon-clog3-cinemagamut',5],['fujifilm-flog-fgamut',6],['dji-dlog-dgamut',7],['apple-log-rec2020',8],['blackmagic-film5-wg5',9],['hlg-rec2020',10]]){
   assert.equal(CM.PROFILES[id].transfer,t);const gray=ENCODE[t](.18);
   CM.toLinear709([gray,gray,gray],id).forEach(v=>close(v,.18,1e-6));
  }
@@ -90,4 +91,9 @@ test('JSON v2 stores the input domain and rejects inconsistent or disguised lega
  const old={format:'odygrade',version:1,inputSpace:'srgb',settings:options};
  assert.throws(()=>E.parse(JSON.stringify(old)),/legacy/);
  assert.equal(E.settings({unknownControl:'ignored'}).unknownControl,undefined);
+});
+test('HLG decodes BT.2408 reference levels and inverts the BT.2100 OETF',()=>{
+ close(CM.decode(.75,10),1,1e-12);close(CM.decode(0,10),0);close(CM.decode(.38,10),.1817,.0005);
+ close(CM.decode(.5-1e-12,10),CM.decode(.5+1e-12,10),1e-9);assert.ok(CM.decode(1,10)>3.7&&CM.decode(1,10)<3.8);
+ for(const x of [.01,.2,.5,.6,.9,1])close(ENCODE[10](CM.decode(x,10)),x,1e-9);
 });
