@@ -16,7 +16,9 @@ Updated: 2026-11-23 (Asia/Jakarta)
   gone) -> install -> install again over the same: all exit 0, hashes and panel 0.5.0 verified.
   0.5.0 is what is installed now. AE 24.6 live (empty Untitled, runs/release-050-ae): effect listed,
   panel-bridge apply embedded (link -18127), render OK, no version warning; frame 0 == dev.15
-  (mean 0.000, max 1/255). Not done: Premiere load of 0.5.0, clean machine, signed ZXP.
+  (mean 0.000, max 1/255). Premiere 24.6.1 live (smoke job, runs/ppro-20261123-025559): effect
+  found via QE with all 29 params, applied, before/after/film PNGs == the 2026-11-20 run (max 1/255).
+  Not done: clean machine, signed ZXP.
 - outputs/OdyGrade-native-dev/ (dev.N staging + backups) is superseded by the release zip.
 
 ## Latest checkpoint — iPhone HLG input (Claude, 2026-11-23)
