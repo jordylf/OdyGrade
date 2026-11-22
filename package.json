@@ -1,6 +1,6 @@
 {
   "name": "odygrade",
-  "version": "0.3.0",
+  "version": "0.5.0",
   "private": true,
   "description": "Reference-based color grading for Adobe 2024",
   "scripts": {
@@ -10,7 +10,8 @@
     "package": "node tools/package.cjs",
     "native:build": "node tools/native.cjs build",
     "native:test": "node tools/native.cjs test",
-    "archive": "python tools/archive.py"
+    "archive": "python tools/archive.py",
+    "release": "node tools/release.cjs"
   },
   "engines": {
     "node": ">=18"

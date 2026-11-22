@@ -98,7 +98,7 @@ struct PremierePixels {
  }
 };
 PF_Err global(PF_InData* in_data,PF_OutData* out_data){
- out_data->my_version=PF_VERSION(0,4,0,PF_Stage_DEVELOP,1);
+ out_data->my_version=PF_VERSION(0,5,0,PF_Stage_RELEASE,0);
  out_data->out_flags=PF_OutFlag_DEEP_COLOR_AWARE|PF_OutFlag_NON_PARAM_VARY;
  // Multi-Frame Rendering: render only reads params and the arb handle; the shared pending
  // cache is mutex-guarded; no global or sequence data. Must match the PiPL OutFlags_2.
