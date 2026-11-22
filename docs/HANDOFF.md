@@ -4,7 +4,7 @@ Updated: 2026-11-22 (Asia/Jakarta)
 
 
 
-## Latest checkpoint — AE Multi-Frame Rendering (Claude, 2026-11-22, in progress)
+## Latest checkpoint — AE Multi-Frame Rendering (Claude, 2026-11-23)
 
 - Before: OutFlags_2=0, so AE rendered OdyGrade comps without MFR. Baseline dev.15, render
   queue 120 frames 1080x1920 16 bpc full film, TIFF: 113.9 s (effect off 8.6 s).
@@ -15,8 +15,11 @@ Updated: 2026-11-22 (Asia/Jakarta)
 - Built, NOT installed (dev.17 candidate): odygrade::set_thread_limit (thread_local, 0 = all
   cores); adapter render splits cores by concurrent renders (atomic counter). Core test: limit 1
   == all cores; harness PASS; bench byte-identical.
-- Next: install dev.17 (AE closed + UAC), rerun the 120-frame render, compare with 113.9/122.1 s.
-  Open question: AE render queue costs ~0.95 s/frame vs ~0.39 s CLI; find where.
+- dev.17-mfr-split installed 2026-11-23 (sha 9aaf5745..., dev.16 backup OdyGrade.dev16.aex.bak).
+  Same 120-frame render: 102.7 s (dev.15 113.9, dev.16 122.1) = ~10% faster than no-MFR;
+  frames 0/37/81/119 identical to dev.15 (max 0). Runs in runs/mfr-20261122/dev15|16|17-fxon.
+- Open: AE still ~0.85 s/frame effect cost vs ~0.39 s CLI for the same frame; find where
+  (two-pass adapter with float intermediate, AE overhead?) before more MFR tuning.
 
 ## Earlier checkpoint — dev.14 host re-check (Claude, 2026-11-22)
 
