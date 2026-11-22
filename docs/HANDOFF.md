@@ -1,5 +1,5 @@
 # Claude handoff — OdyGrade
-Updated: 2026-11-22 (Asia/Jakarta)
+Updated: 2026-11-23 (Asia/Jakarta)
 
 
 
@@ -18,8 +18,19 @@ Updated: 2026-11-22 (Asia/Jakarta)
 - dev.17-mfr-split installed 2026-11-23 (sha 9aaf5745..., dev.16 backup OdyGrade.dev16.aex.bak).
   Same 120-frame render: 102.7 s (dev.15 113.9, dev.16 122.1) = ~10% faster than no-MFR;
   frames 0/37/81/119 identical to dev.15 (max 0). Runs in runs/mfr-20261122/dev15|16|17-fxon.
-- Open: AE still ~0.85 s/frame effect cost vs ~0.39 s CLI for the same frame; find where
-  (two-pass adapter with float intermediate, AE overhead?) before more MFR tuning.
+- Cause of AE ~0.85 s/frame vs CLI ~0.39 s: the adapter always rendered base colour to a float
+  intermediate, then a second render for film that redid the full colour/Lab round trip on a
+  neutral recipe (~45% of CPU wasted). dev.18-trace (timing lines in %TEMP%/OdyGrade-trace.log,
+  readable only after AE closes) confirmed 1 render call per frame, 8 concurrent.
+- dev.19-single-pass installed 2026-11-23 (sha 3f041cbb..., dev.18 backup OdyGrade.dev18.aex.bak),
+  commit 887c426: with exposure/temperature/tint trims all 0 the adapter renders once with the
+  merged recipe (two-pass kept for non-zero trims); core fuses colour into the final write when no
+  weave/bloom/halation needs a frame copy (byte-identical). Bench 8 concurrent: 313 -> 213 ms/frame;
+  single vs two-pass max 0.008/255.
+  Same 120-frame render: 54.4 s (dev.17 102.7, dev.15 113.9) = 2.1x vs no-MFR; frames 0/37/81/119
+  vs dev.15 mean 0.000, max 1/255. Run in runs/mfr-20261122/dev19-full.
+- Still on: trace logging (fopen per process, flush per line, file locked while AE runs). Remove or
+  gate it before a release build.
 
 ## Earlier checkpoint — dev.14 host re-check (Claude, 2026-11-22)
 
