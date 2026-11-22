@@ -4,6 +4,28 @@ Updated: 2026-11-23 (Asia/Jakarta)
 
 
 
+## Latest checkpoint — iPhone HLG input (Claude, 2026-11-23)
+
+- No LOG footage or manufacturer LUTs on this machine. The user's iPhone 13/14 clips
+  (E:/Download/decant) are HEVC 10-bit HLG / BT.2020 (Dolby Vision 8.4 HLG base), not Apple Log.
+- New profile `hlg-rec2020` (transfer 10, commit 52fcdc1): BT.2100 inverse OETF in scene light,
+  no OOTF, /hlg(0.75) so BT.2408 diffuse white = 1.0 and 18% grey at 38%; Rec.2020 primaries;
+  same SDR rolloff as other camera profiles. JS == core; tests 67/67. dev.21-hlg installed
+  (sha 2a353298..., dev.20 backup OdyGrade.dev20.aex.bak); panel src/app.js + color-management.js
+  updated in the CEP install (old files in work/panel-backup-dev20).
+- AE 24.6 default project (working space None, 16 bpc) hands the effect raw HLG code values:
+  AE frame vs ffmpeg raw HLG decode mean 2.9/255 (G 0.9/255; R/B ~4/255 = chroma upsampling),
+  vs an SDR tone-map 25/255. So HLG clips need this profile; sRGB looks flat/grey.
+- AE live == offline: 16-bit PNG of the HLG frame (avoids the HEVC decoder) + OdyGrade HLG neutral:
+  8-bit max 2, mean 0.58, signed -0.55 (AE truncates to 8-bit). Real clip frame: mean 0.6.
+  Runs in work/adobe-host/runs/hlg-20261123.
+- Test quirks: "TIFF Sequence with Alpha" output is 8-bit (BitsPerSample 8). In these sessions
+  the SECOND scripted render-queue render of a 1-frame item fails with "Error Code 3" (or a black
+  frame), even with OdyGrade never applied; every export then fails until AE restarts. Not the
+  plugin. Do one render per AE session, or put both variants in one comp.
+- Not done: Premiere with HLG clips (sequence colour settings / auto tone-map may already convert
+  to Rec.709 -> then sRGB is right); real LOG clips vs manufacturer LUTs.
+
 ## Latest checkpoint — AE Multi-Frame Rendering (Claude, 2026-11-23)
 
 - Before: OutFlags_2=0, so AE rendered OdyGrade comps without MFR. Baseline dev.15, render
