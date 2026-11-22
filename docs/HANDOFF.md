@@ -4,6 +4,19 @@ Updated: 2026-11-23 (Asia/Jakarta)
 
 
 
+## Latest checkpoint — 0.5.0 release package (Claude, 2026-11-23)
+
+- One version, 0.5.0: package.json, CSXS manifest, CMake, PiPL AE_Effect_Version 165376 and
+  my_version PF_VERSION(0,5,0,PF_Stage_RELEASE,0); tests/version.test.cjs (68/68).
+- npm run release (tools/release.cjs + tools/installer/) -> outputs/OdyGrade-0.5.0-win64.zip
+  (1.8 MB, plugin sha256 C2F50793...). Install.cmd: refuses if hosts run, hash check, panel per
+  user (old panel -> %LOCALAPPDATA%/OdyGrade/backup), CSXS.11 PlayerDebugMode=1, one UAC step for
+  the effect (InstallPlugin.ps1 = former native-dev install.ps1). Uninstall.cmd removes both.
+- Tested from the extracted zip (work/release-test-050): install over dev.21 -> uninstall (both
+  gone) -> install -> install again over the same: all exit 0, hashes and panel 0.5.0 verified.
+  0.5.0 is what is installed now. Not done: host load check of 0.5.0, clean machine, signed ZXP.
+- outputs/OdyGrade-native-dev/ (dev.N staging + backups) is superseded by the release zip.
+
 ## Latest checkpoint — iPhone HLG input (Claude, 2026-11-23)
 
 - No LOG footage or manufacturer LUTs on this machine. The user's iPhone 13/14 clips

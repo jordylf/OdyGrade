@@ -25,7 +25,8 @@ Fine-tune correction, look strength, skin hue protection, palette and film contr
 Save JSON to resume work; export .cube for the color transform or PNG for a full still.
 
 **Choose the source profile; output is sRGB SDR.** Supported sources are sRGB,
-Rec.709 display gamma 2.4, Sony S-Log3/S-Gamut3.Cine and Panasonic V-Log/V-Gamut.
+Rec.709 display gamma 2.4, HLG/Rec.2020 (iPhone HDR), and log curves from Sony, Panasonic,
+ARRI, Canon, Fujifilm, DJI, Apple and Blackmagic (see docs/COLOR-MANAGEMENT.md).
 Use sRGB if your editor already normalized the footage. Camera values must be full
 range and unconverted. Reference screenshots remain sRGB. The camera profiles use
 official transfer/primary definitions plus our own SDR view, not a manufacturer's
@@ -43,6 +44,15 @@ AE: apply a compatible LUT-loading effect manually. Resolve: import the LUT
 and apply at a stage matching the recipe's input domain. Native editable node construction
 and automatic timeline application are **not implemented**.
 Spatial film effects cannot be encoded in .cube; they exist in PNG exports and JSON.
+
+## Install (Windows, After Effects / Premiere Pro 2024)
+Build the effect (node tools/adobe.cjs --sdk <AfterEffectsSDK>), then npm run release.
+It writes ../OdyGrade-<version>-win64.zip with Install.cmd / Uninstall.cmd / README.txt:
+panel per user (unsigned, so CSXS.11 PlayerDebugMode is enabled), effect into
+Program Files\Adobe\Common\Plug-ins.0\MediaCore\OdyWorks after one UAC prompt and a
+SHA-256 check. Close both hosts first. Not a signed ZXP; not tested on a clean machine.
+Version lives in package.json; tests/version.test.cjs keeps CSXS, CMake, PiPL and the
+effect's my_version equal to it.
 
 ## Adobe 2024 CEP development installation
 1. npm run package
