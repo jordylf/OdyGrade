@@ -18,7 +18,7 @@ would normalize the material twice.
 | `dji-dlog-dgamut` | Full-range DJI D-Log with D-Gamut. Not D-Log M. |
 | `apple-log-rec2020` | Apple Log (iPhone) with Rec.2020 primaries. |
 | `blackmagic-film5-wg5` | Blackmagic Film Generation 5 with Blackmagic Wide Gamut Gen 5 (D65 used as white; BMD publishes 0.312717, 0.3290312). |
-| `hlg-rec2020` | Full-range HLG (BT.2100) with Rec.2020 primaries, e.g. iPhone HDR video (Dolby Vision 8.4 HLG base layer). Scene-light inverse OETF, no HLG OOTF; BT.2408 diffuse white (75% signal) = 1.0, 18% grey at 38%. Use only on unconverted HLG pixels; choose sRGB if the host already tone-mapped to Rec.709. |
+| `hlg-rec2020` | Full-range HLG (BT.2100) with Rec.2020 primaries, e.g. iPhone HDR video (Dolby Vision 8.4 HLG base layer). Scene-light inverse OETF, no HLG OOTF; BT.2408 diffuse white (75% signal) = 1.0, 18% grey at 38%. Use only on unconverted HLG pixels. Live-checked 2026-11-23: AE 24.6 default project (working space None) delivers raw HLG -> use this profile; Premiere 24.6 default sequence (auto tone-map on, Rec.709) delivers tone-mapped SDR -> use `srgb` (HLG there decodes twice: over-bright). |
 
 PNG/JPEG/WebP import uses browser-decoded values. This is not RAW decoding or an ICC
 profile engine. Host captures may already contain a display/color transform; choose

@@ -61,7 +61,7 @@
    var ri=null;for(var r=0;r<app.project.rootItem.children.numItems;r++)if(app.project.rootItem.children[r].name==='source.mov')ri=app.project.rootItem.children[r];
    if(!ri)throw Error('Import failed');
    var rs=app.project.createNewSequenceFromClips('OdyGrade real',[ri],app.project.rootItem);if(!rs)throw Error('Sequence creation failed');
-   app.project.activeSequence=rs;var fs=rs.getSettings();log.push('seq '+fs.videoFrameWidth+'x'+fs.videoFrameHeight);
+   app.project.activeSequence=rs;var fs=rs.getSettings();log.push('seq '+fs.videoFrameWidth+'x'+fs.videoFrameHeight);try{var cp=[];for(var k in fs)if(/olor|hdr|HDR|ToneMap|tone/i.test(k))cp.push(k+'='+fs[k]);log.push('color '+cp.join(','));}catch(ce){log.push('color n/a');}
    for(r=0;r<3;r++){at(rs,rt[r]);frame('src-'+r);}
    $.evalFile(new File($.fileName).parent.parent.fsName+'/host/bridge.jsx');
    rs.videoTracks[0].clips[0].setSelected(true,true);

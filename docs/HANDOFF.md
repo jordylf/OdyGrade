@@ -23,8 +23,13 @@ Updated: 2026-11-23 (Asia/Jakarta)
   the SECOND scripted render-queue render of a 1-frame item fails with "Error Code 3" (or a black
   frame), even with OdyGrade never applied; every export then fails until AE restarts. Not the
   plugin. Do one render per AE session, or put both variants in one comp.
-- Not done: Premiere with HLG clips (sequence colour settings / auto tone-map may already convert
-  to Rec.709 -> then sRGB is right); real LOG clips vs manufacturer LUTs.
+- Premiere 24.6.1 live (runs/ppro-hlg-20261123, smoke runner job "real", new scratch project,
+  4 s stream-copied HLG clip, neutral HLG grade): new sequence has autoToneMapEnabled=true and
+  src frames are already tone-mapped SDR (vs raw HLG signed +23/255). OdyGrade HLG on top decodes
+  twice: over-bright/over-saturated. => Premiere default: use sRGB; AE default: use HLG.
+  Panel help text says so per host. tools/ppro-host-smoke.jsx "real" now logs sequence colour
+  settings. Not tested: Premiere with auto tone-map off / an HLG working space.
+- Not done: real LOG clips vs manufacturer LUTs.
 
 ## Latest checkpoint — AE Multi-Frame Rendering (Claude, 2026-11-23)
 

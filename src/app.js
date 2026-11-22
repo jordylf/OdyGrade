@@ -100,7 +100,7 @@ function sync(){
  $("sourceProfile").value=state.settings.inputProfile;
  $("profileHelp").textContent=state.settings.inputProfile==='srgb'?'Use for screenshots or footage already normalized by your editor.':
   state.settings.inputProfile==='rec709-gamma24'?'Full-range display RGB, gamma 2.4 with ideal black. This is not camera Rec.709 OETF.':
-  state.settings.inputProfile==='hlg-rec2020'?'iPhone HDR (HLG) as the editor delivers it unconverted. If the project already converts HDR to Rec.709, use sRGB.':
+  state.settings.inputProfile==='hlg-rec2020'?'iPhone HDR (HLG) delivered unconverted, e.g. After Effects default (no working space). Premiere tone-maps HLG to Rec.709 by default: use sRGB there.':
   'Use full-range, unconverted LOG values. Our SDR highlight rolloff is included in the exported LUT.';
  var selects=["ratio","gauge","format","perfs"];Object.keys(state.film).forEach(function(k){if(selects.indexOf(k)<0)syncControl(k,state.film[k]);else $(k).value=state.film[k];});
  Array.prototype.forEach.call(document.querySelectorAll(".look"),function(b){b.classList.toggle("active",b.dataset.look===state.settings.look);b.setAttribute("aria-pressed",String(b.dataset.look===state.settings.look));});
