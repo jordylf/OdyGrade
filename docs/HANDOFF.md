@@ -14,7 +14,9 @@ Updated: 2026-11-23 (Asia/Jakarta)
   the effect (InstallPlugin.ps1 = former native-dev install.ps1). Uninstall.cmd removes both.
 - Tested from the extracted zip (work/release-test-050): install over dev.21 -> uninstall (both
   gone) -> install -> install again over the same: all exit 0, hashes and panel 0.5.0 verified.
-  0.5.0 is what is installed now. Not done: host load check of 0.5.0, clean machine, signed ZXP.
+  0.5.0 is what is installed now. AE 24.6 live (empty Untitled, runs/release-050-ae): effect listed,
+  panel-bridge apply embedded (link -18127), render OK, no version warning; frame 0 == dev.15
+  (mean 0.000, max 1/255). Not done: Premiere load of 0.5.0, clean machine, signed ZXP.
 - outputs/OdyGrade-native-dev/ (dev.N staging + backups) is superseded by the release zip.
 
 ## Latest checkpoint — iPhone HLG input (Claude, 2026-11-23)
