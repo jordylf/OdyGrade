@@ -373,16 +373,20 @@ void render(const ConstFrame& input,const Frame& output,const Recipe& recipe,std
     if(input.width!=output.width||input.height!=output.height)throw std::invalid_argument("Frame size mismatch");
     const auto w=input.width,h=input.height;const auto in_layout=layout(input.format),out_layout=layout(output.format);
     const auto prepared=prepare(recipe);const auto& film=recipe.film;
-    std::vector<std::array<double,4>> pixels(static_cast<std::size_t>(w)*h);
-    parallel_rows(h,[&](int r0,int r1){for(int y=r0;y<r1;++y)for(int x=0;x<w;++x) {
+    const auto graded=[&](int x,int y)->std::array<double,4>{
         const auto p=static_cast<const std::uint8_t*>(input.data)+y*input.row_bytes+x*pixel_bytes(input.format);
         const auto alpha=clamp(read_scalar(p+in_layout.channels[3]*in_layout.scalar_bytes,in_layout));
         Color c{};for(int k=0;k<3;++k)c[k]=read_scalar(p+in_layout.channels[k]*in_layout.scalar_bytes,in_layout);
         if(input.alpha==AlphaMode::Premultiplied)for(auto& v:c)v=alpha>0?v/alpha:0;
         c=apply_color(c,recipe,prepared);
-        pixels[static_cast<std::size_t>(y)*w+x]={c[0],c[1],c[2],alpha};
-    }});
+        return {c[0],c[1],c[2],alpha};
+    };
     const auto fmt=format_pass(film,w,h,frame_index);
+    // Without weave or glow every output pixel depends only on its own input pixel: grade and
+    // finish in one sweep, skipping the full-frame double buffer (memory bandwidth under MFR).
+    const bool direct=!(fmt.dx||fmt.dy)&&!(film.bloom||film.halation);
+    std::vector<std::array<double,4>> pixels(direct?0:static_cast<std::size_t>(w)*h);
+    if(!direct)parallel_rows(h,[&](int r0,int r1){for(int y=r0;y<r1;++y)for(int x=0;x<w;++x)pixels[static_cast<std::size_t>(y)*w+x]=graded(x,y);});
     if(fmt.dx||fmt.dy)pixels=shift(pixels,w,h,fmt.dx,fmt.dy);
     std::vector<float> light;
     if(film.bloom||film.halation) {
@@ -401,7 +405,7 @@ void render(const ConstFrame& input,const Frame& output,const Recipe& recipe,std
     const auto cell=gauge?std::max(.5,std::min(w,h)/1080.0*gauge->size*std::pow(film.iso/200,.35)):1.0;
     const auto amp=gauge?film.grain*32*gauge->amplitude*std::sqrt(film.iso/200):0.0;
     parallel_rows(h,[&](int r0,int r1){for(int y=r0;y<r1;++y)for(int x=0;x<w;++x) {
-        const auto i=static_cast<std::size_t>(y)*w+x;const auto& c=pixels[i];
+        const auto i=static_cast<std::size_t>(y)*w+x;const auto c=direct?graded(x,y):pixels[i];
         const auto dx=(x+.5)/w-.5,dy=(y+.5)/h-.5;
         const auto vignette=1-film.vignette*std::min(1.0,std::pow((dx*dx+dy*dy)*2,1.2));
         const auto l=(c[0]*.2126+c[1]*.7152+c[2]*.0722)*255;

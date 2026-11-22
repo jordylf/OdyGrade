@@ -1,6 +1,7 @@
 #include "adapter.hpp"
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -21,10 +22,12 @@ constexpr std::size_t Limit=65536;
 FILE* trace_file();
 void trace(const char* fmt,int a,int b=0){if(auto f=trace_file()){std::fprintf(f,fmt,a,b);std::fputc('\n',f);std::fflush(f);}}
 FILE* trace_file(){
- static FILE* f=[]{wchar_t p[MAX_PATH+32];const auto n=GetTempPathW(MAX_PATH,p);if(!n||n>MAX_PATH)return static_cast<FILE*>(nullptr);
-  wcscat_s(p,L"OdyGrade-trace.log");if(GetFileAttributesW(p)==INVALID_FILE_ATTRIBUTES)return static_cast<FILE*>(nullptr);
-  FILE* h=nullptr;return _wfopen_s(&h,p,L"a")?static_cast<FILE*>(nullptr):h;}();
- return f;
+ // Re-checked until found, so creating the log turns tracing on without restarting the host.
+ static std::atomic<FILE*> f{nullptr};if(auto h=f.load())return h;
+ wchar_t p[MAX_PATH+32];const auto n=GetTempPathW(MAX_PATH,p);if(!n||n>MAX_PATH)return nullptr;
+ wcscat_s(p,L"OdyGrade-trace.log");if(GetFileAttributesW(p)==INVALID_FILE_ATTRIBUTES)return nullptr;
+ static std::mutex m;std::lock_guard<std::mutex> lock(m);if(auto h=f.load())return h;
+ FILE* h=nullptr;if(_wfopen_s(&h,p,L"a"))return nullptr;f=h;return h;
 }
 void trace_text(int cmd,const char* what){if(auto f=trace_file()){std::fprintf(f,"cmd=%d error: %s\n",cmd,what);std::fflush(f);}}
 constexpr const char* Looks[]={"neutral","amber","nocturne","evergreen","rose","silver","coast","earth","cyan","velvet"};
@@ -179,17 +182,27 @@ PF_Err render(PF_InData* in_data,PF_ParamDef* p[],PF_LayerDef* output){
  trace("render fmt in=%d out=%d",static_cast<int>(inputFormat),static_cast<int>(outputFormat));  // 1 BGRA8, 8 BGRA32F, 2 ARGB8, 6 ARGB16AE
  const auto alpha=p[Alpha]->u.pd.value==1?odygrade::AlphaMode::Premultiplied:odygrade::AlphaMode::Straight;
  if(p[Alpha]->u.pd.value<1||p[Alpha]->u.pd.value>2)throw std::invalid_argument("Invalid alpha mode");
- std::vector<float> intermediate(static_cast<std::size_t>(input.width)*input.height*4);
- const auto stride=static_cast<std::ptrdiff_t>(input.width)*16;
  odygrade::ConstFrame source{input.data,input.width,input.height,input.rowbytes,inputFormat,alpha};
- odygrade::Frame stage{intermediate.data(),input.width,input.height,stride,odygrade::PixelFormat::RGBA32F,odygrade::AlphaMode::Straight};
- odygrade::render(source,stage,base);
- if(PF_ABORT(in_data))return PF_Interrupt_CANCEL;
- odygrade::ConstFrame stageInput{stage.data,stage.width,stage.height,stage.row_bytes,stage.format,stage.alpha};
  odygrade::Frame target{output->data,output->width,output->height,output->rowbytes,outputFormat,alpha};
  const auto frame=in_data->time_step?static_cast<std::int64_t>(std::floor(static_cast<double>(in_data->current_time)/std::abs(static_cast<double>(in_data->time_step)))):0;
  const double par=in_data->pixel_aspect_ratio.den?static_cast<double>(in_data->pixel_aspect_ratio.num)/in_data->pixel_aspect_ratio.den:1;
+ const auto t0=std::chrono::steady_clock::now();
+ const auto elapsed=[&]{return static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()-t0).count());};
+ // No post-match trims (the usual case): grade + film in one pass, same as the offline renderer.
+ // A second neutral colour pass costs as much CPU as the grade itself.
+ if(finishing.settings.exposure==0&&finishing.settings.temperature==0&&finishing.settings.tint==0){
+  base.film=finishing.film;odygrade::render(source,target,base,static_cast<std::uint64_t>(frame),par);
+  trace("render frame=%d active=%d",static_cast<int>(frame),active.load());trace("render single_ms=%d",elapsed());
+  return PF_ABORT(in_data)?PF_Interrupt_CANCEL:PF_Err_NONE;
+ }
+ std::vector<float> intermediate(static_cast<std::size_t>(input.width)*input.height*4);
+ const auto stride=static_cast<std::ptrdiff_t>(input.width)*16;
+ odygrade::Frame stage{intermediate.data(),input.width,input.height,stride,odygrade::PixelFormat::RGBA32F,odygrade::AlphaMode::Straight};
+ odygrade::render(source,stage,base);const auto pass1=elapsed();
+ if(PF_ABORT(in_data))return PF_Interrupt_CANCEL;
+ odygrade::ConstFrame stageInput{stage.data,stage.width,stage.height,stage.row_bytes,stage.format,stage.alpha};
  odygrade::render(stageInput,target,finishing,static_cast<std::uint64_t>(frame),par);
+ trace("render frame=%d active=%d",static_cast<int>(frame),active.load());trace("render pass1_ms=%d total_ms=%d",pass1,elapsed());
  return PF_ABORT(in_data)?PF_Interrupt_CANCEL:PF_Err_NONE;
 }
 PF_Err link(PF_InData* in_data,PF_OutData* out_data,PF_ParamDef* p[]){
