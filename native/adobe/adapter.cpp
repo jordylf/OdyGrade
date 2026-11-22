@@ -1,7 +1,6 @@
 #include "adapter.hpp"
 #include <algorithm>
 #include <atomic>
-#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -17,19 +16,6 @@
 namespace odygrade_adobe {
 namespace {
 constexpr std::size_t Limit=65536;
-// Opt-in host trace: active only when %TEMP%\OdyGrade-trace.log already exists.
-// CRT FILE calls lock internally, so MFR render threads may interleave lines but not corrupt them.
-FILE* trace_file();
-void trace(const char* fmt,int a,int b=0){if(auto f=trace_file()){std::fprintf(f,fmt,a,b);std::fputc('\n',f);std::fflush(f);}}
-FILE* trace_file(){
- // Re-checked until found, so creating the log turns tracing on without restarting the host.
- static std::atomic<FILE*> f{nullptr};if(auto h=f.load())return h;
- wchar_t p[MAX_PATH+32];const auto n=GetTempPathW(MAX_PATH,p);if(!n||n>MAX_PATH)return nullptr;
- wcscat_s(p,L"OdyGrade-trace.log");if(GetFileAttributesW(p)==INVALID_FILE_ATTRIBUTES)return nullptr;
- static std::mutex m;std::lock_guard<std::mutex> lock(m);if(auto h=f.load())return h;
- FILE* h=nullptr;if(_wfopen_s(&h,p,L"a"))return nullptr;f=h;return h;
-}
-void trace_text(int cmd,const char* what){if(auto f=trace_file()){std::fprintf(f,"cmd=%d error: %s\n",cmd,what);std::fflush(f);}}
 constexpr const char* Looks[]={"neutral","amber","nocturne","evergreen","rose","silver","coast","earth","cyan","velvet"};
 constexpr double Ratios[]={0,1.33,1.85,2.39};
 constexpr double Gauges[]={0,8,16,35,65};
@@ -50,7 +36,6 @@ PF_Handle make(PF_InData* in_data,const std::string& value){
 }
 void valid_text(const std::string& value){if(!value.empty())(void)odygrade::read_recipe(value);}
 PF_Err arbitrary(PF_InData* in_data,PF_ArbParamsExtra* x){
- trace("arb id=%d fn=%d",x?x->id:-1,x?x->which_function:-1);
  if(!x||x->id!=Stored)return PF_Err_INVALID_CALLBACK;
  auto& u=x->u;
  switch(x->which_function){
@@ -70,14 +55,11 @@ PF_Err arbitrary(PF_InData* in_data,PF_ArbParamsExtra* x){
 }
 PF_Err setup(PF_InData* in_data,PF_OutData* out_data){
  PF_ParamDef def{};
- trace("setup button",0);
  PF_ADD_BUTTON("Reference grade","Load native grade...",0,PF_ParamFlag_SUPERVISE,Load);
- trace("setup arbitrary",0);
  AEFX_CLR_STRUCT(def);
  // AE 24.6 host rules found live: CANNOT_TIME_VARY|CANNOT_INTERP + PUI_INVISIBLE crashed
  // inside add_param; nonzero ui size without PF_OutFlag_CUSTOM_UI is rejected.
  PF_ADD_ARBITRARY2("Embedded reference grade",0,0,0,PF_PUI_NO_ECW_UI,make(in_data,""),Stored,nullptr);
- trace("setup arbitrary ok",0);
  AEFX_CLR_STRUCT(def);PF_ADD_POPUP("Look",10,1,"Neutral|Amber Hour|Nocturne|Evergreen|Rose Memory|Silver Screen|Coastal Blue|Earth and Ochre|Cyan District|Velvet Night",Look);
  struct Slider{const char* label;double lo,hi,initial;int id;};
  const Slider sliders[]={
@@ -98,7 +80,6 @@ PF_Err setup(PF_InData* in_data,PF_OutData* out_data){
  AEFX_CLR_STRUCT(def);PF_ADD_POPUP("Perforations",2,1,"Off|On",Perfs);
  AEFX_CLR_STRUCT(def);PF_ADD_POPUP("Film stock",9,1,"None|Tungsten 500|Daylight 250|Portrait 400|Chrome 100|Consumer 200|Cinema Print|Mono 400|Expired",FilmStock);
  AEFX_CLR_STRUCT(def);PF_ADD_FLOAT_SLIDERX("Stock amount",0,100,0,100,100,PF_Precision_HUNDREDTHS,0,0,StockAmount);
- trace("setup done params=%d",Count);
  out_data->num_params=Count;return PF_Err_NONE;
 }
 struct PremierePixels {
@@ -179,30 +160,25 @@ PF_Err render(PF_InData* in_data,PF_ParamDef* p[],PF_LayerDef* output){
  f.weave=value(p,Weave)/100;f.flicker=value(p,Flicker)/100;f.dust=value(p,Dust)/100;f.perfs=perfs;
  odygrade::validate(base);odygrade::validate(finishing);
  PremierePixels pixels(in_data);const auto inputFormat=pixels.format(&input),outputFormat=pixels.format(output);
- trace("render fmt in=%d out=%d",static_cast<int>(inputFormat),static_cast<int>(outputFormat));  // 1 BGRA8, 8 BGRA32F, 2 ARGB8, 6 ARGB16AE
  const auto alpha=p[Alpha]->u.pd.value==1?odygrade::AlphaMode::Premultiplied:odygrade::AlphaMode::Straight;
  if(p[Alpha]->u.pd.value<1||p[Alpha]->u.pd.value>2)throw std::invalid_argument("Invalid alpha mode");
  odygrade::ConstFrame source{input.data,input.width,input.height,input.rowbytes,inputFormat,alpha};
  odygrade::Frame target{output->data,output->width,output->height,output->rowbytes,outputFormat,alpha};
  const auto frame=in_data->time_step?static_cast<std::int64_t>(std::floor(static_cast<double>(in_data->current_time)/std::abs(static_cast<double>(in_data->time_step)))):0;
  const double par=in_data->pixel_aspect_ratio.den?static_cast<double>(in_data->pixel_aspect_ratio.num)/in_data->pixel_aspect_ratio.den:1;
- const auto t0=std::chrono::steady_clock::now();
- const auto elapsed=[&]{return static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()-t0).count());};
  // No post-match trims (the usual case): grade + film in one pass, same as the offline renderer.
  // A second neutral colour pass costs as much CPU as the grade itself.
  if(finishing.settings.exposure==0&&finishing.settings.temperature==0&&finishing.settings.tint==0){
   base.film=finishing.film;odygrade::render(source,target,base,static_cast<std::uint64_t>(frame),par);
-  trace("render frame=%d active=%d",static_cast<int>(frame),active.load());trace("render single_ms=%d",elapsed());
   return PF_ABORT(in_data)?PF_Interrupt_CANCEL:PF_Err_NONE;
  }
  std::vector<float> intermediate(static_cast<std::size_t>(input.width)*input.height*4);
  const auto stride=static_cast<std::ptrdiff_t>(input.width)*16;
  odygrade::Frame stage{intermediate.data(),input.width,input.height,stride,odygrade::PixelFormat::RGBA32F,odygrade::AlphaMode::Straight};
- odygrade::render(source,stage,base);const auto pass1=elapsed();
+ odygrade::render(source,stage,base);
  if(PF_ABORT(in_data))return PF_Interrupt_CANCEL;
  odygrade::ConstFrame stageInput{stage.data,stage.width,stage.height,stage.row_bytes,stage.format,stage.alpha};
  odygrade::render(stageInput,target,finishing,static_cast<std::uint64_t>(frame),par);
- trace("render frame=%d active=%d",static_cast<int>(frame),active.load());trace("render pass1_ms=%d total_ms=%d",pass1,elapsed());
  return PF_ABORT(in_data)?PF_Interrupt_CANCEL:PF_Err_NONE;
 }
 PF_Err link(PF_InData* in_data,PF_OutData* out_data,PF_ParamDef* p[]){
@@ -254,7 +230,6 @@ extern "C" DllExport PF_Err PluginDataEntryFunction2(PF_PluginDataPtr ptr,PF_Plu
  return result;
 }
 extern "C" DllExport PF_Err EffectMain(PF_Cmd cmd,PF_InData* in_data,PF_OutData* out_data,PF_ParamDef* p[],PF_LayerDef* output,void* extra){
- odygrade_adobe::trace("cmd=%d appl=%d",cmd,in_data?static_cast<int>(in_data->appl_id):0);
  try{using namespace odygrade_adobe;switch(cmd){
  case PF_Cmd_ABOUT:std::snprintf(out_data->return_msg,sizeof(out_data->return_msg),"OdyGrade 0.4 native development build. SDR reference grade and film. AE 8/16 bpc; Premiere BGRA 8/float. Host compatibility must be tested.");break;
  case PF_Cmd_GLOBAL_SETUP:return global(in_data,out_data);
@@ -265,6 +240,6 @@ extern "C" DllExport PF_Err EffectMain(PF_Cmd cmd,PF_InData* in_data,PF_OutData*
  default:break;
  }return PF_Err_NONE;
  }catch(const std::bad_alloc&){return PF_Err_OUT_OF_MEMORY;}
- catch(const std::exception& e){odygrade_adobe::trace_text(cmd,e.what());if(out_data){std::snprintf(out_data->return_msg,sizeof(out_data->return_msg),"OdyGrade: %s",e.what());out_data->out_flags|=PF_OutFlag_DISPLAY_ERROR_MESSAGE;}return PF_Err_INTERNAL_STRUCT_DAMAGED;}
+ catch(const std::exception& e){if(out_data){std::snprintf(out_data->return_msg,sizeof(out_data->return_msg),"OdyGrade: %s",e.what());out_data->out_flags|=PF_OutFlag_DISPLAY_ERROR_MESSAGE;}return PF_Err_INTERNAL_STRUCT_DAMAGED;}
  catch(...){return PF_Err_INTERNAL_STRUCT_DAMAGED;}
 }

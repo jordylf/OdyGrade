@@ -20,8 +20,7 @@ Updated: 2026-11-23 (Asia/Jakarta)
   frames 0/37/81/119 identical to dev.15 (max 0). Runs in runs/mfr-20261122/dev15|16|17-fxon.
 - Cause of AE ~0.85 s/frame vs CLI ~0.39 s: the adapter always rendered base colour to a float
   intermediate, then a second render for film that redid the full colour/Lab round trip on a
-  neutral recipe (~45% of CPU wasted). dev.18-trace (timing lines in %TEMP%/OdyGrade-trace.log,
-  readable only after AE closes) confirmed 1 render call per frame, 8 concurrent.
+  neutral recipe (~45% of CPU wasted). dev.18-trace (timing lines in a %TEMP% log, now removed) confirmed 1 render call per frame, 8 concurrent.
 - dev.19-single-pass installed 2026-11-23 (sha 3f041cbb..., dev.18 backup OdyGrade.dev18.aex.bak),
   commit 887c426: with exposure/temperature/tint trims all 0 the adapter renders once with the
   merged recipe (two-pass kept for non-zero trims); core fuses colour into the final write when no
@@ -29,8 +28,9 @@ Updated: 2026-11-23 (Asia/Jakarta)
   single vs two-pass max 0.008/255.
   Same 120-frame render: 54.4 s (dev.17 102.7, dev.15 113.9) = 2.1x vs no-MFR; frames 0/37/81/119
   vs dev.15 mean 0.000, max 1/255. Run in runs/mfr-20261122/dev19-full.
-- Still on: trace logging (fopen per process, flush per line, file locked while AE runs). Remove or
-  gate it before a release build.
+- dev.20-no-trace installed 2026-11-23 (sha 210a918e..., dev.19 backup OdyGrade.dev19.aex.bak):
+  opt-in %TEMP% trace log and render timing removed from the adapter (string absent from the .aex);
+  host errors still reach the user via return_msg. Harness PASS, npm test 66/66.
 
 ## Earlier checkpoint — dev.14 host re-check (Claude, 2026-11-22)
 
