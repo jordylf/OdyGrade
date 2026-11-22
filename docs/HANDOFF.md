@@ -4,7 +4,20 @@ Updated: 2026-11-23 (Asia/Jakarta)
 
 
 
-## Latest checkpoint — 0.5.0 release package (Claude, 2026-11-23)
+## Latest checkpoint — Premiere export speed (Claude, 2026-11-23)
+
+- tools/ppro-host-smoke.jsx jobs "perf <dir>" (new scratch project, source.png, JPEG sequence
+  export via exportAsMediaDirect) and "perfx <dir>" (reruns only on <dir>/ppro-perf.prproj).
+- Run work/adobe-host/runs/ppro-perf-20261123, same 1080x1920 image + full film grade as the AE
+  54.4 s test, 119 frames (in 0 / out 4 s), Premiere 24.6.1, JPEG Sequence (Match Source):
+  no effect 7.6-8.7 s (0.07 s/frame); OdyGrade 30.9-31.0 s (0.26 s/frame, ~3.8 fps);
+  effect cost ~0.19 s/frame. Whole sequence 149 frames: JPEG 31.7 s, PNG 62.5 s, H.264 36.2 s.
+  AE same grade: 0.45 s/frame incl. render.
+- Quirk: exportAsMediaDirect right after launch + newProject + createNewSequenceFromClips
+  returned "Unable to initialize export!" for every call; the same calls work later in the
+  session. The perf job therefore needs a perfx rerun (or a delay) after a fresh launch.
+
+## Previous checkpoint — 0.5.0 release package (Claude, 2026-11-23)
 
 - One version, 0.5.0: package.json, CSXS manifest, CMake, PiPL AE_Effect_Version 165376 and
   my_version PF_VERSION(0,5,0,PF_Stage_RELEASE,0); tests/version.test.cjs (68/68).

@@ -20,6 +20,10 @@
  // "reapply <dir>": panel apply again onto the clip that already has OdyGrade (Look Amber, Grain 35).
  // "snap <dir>|<name>": read-only except one PNG <name>.png at 1.5 s + Look/Grain/link values.
  var real=root.indexOf('real ')===0,rframes=root.indexOf('rframes ')===0,reapply=root.indexOf('reapply ')===0,snap=root.indexOf('snap ')===0,sname='';
+ // "perf <dir>": NEW scratch project, <dir>/source.png 4 s, JPEG-sequence export without and with
+ // OdyGrade (<dir>/grade.odyn + params.txt); reports export seconds.
+ var perf=root.indexOf('perf ')===0;if(perf)root=root.substring(5);
+var perfx=root.indexOf('perfx ')===0;if(perfx)root=root.substring(6);
  if(reopen||exporting)root=root.substring(7);if(applying||probe||depth)root=root.substring(6);if(real||snap)root=root.substring(5);if(rframes||reapply)root=root.substring(8);
  if(snap){sname=root.substring(root.lastIndexOf('|')+1);root=root.substring(0,root.lastIndexOf('|'));}
  if(probe){  // read-only: report each clip's Grade link value in the active sequence
@@ -33,7 +37,7 @@
   if(qi){pv.push('\nQE item: '+names(qi));try{pv.push('\nQE numComponents='+qi.numComponents);var qc=qi.getComponentAt(qi.numComponents-1);pv.push('\nQE component: '+names(qc)+' name='+qc.name);}catch(cx){pv.push('\nqe comp err '+cx);}}
   pr.open('w');pr.write(pv.join(' '));pr.close();return;}
  // Table, not a nested ternary: PPro 24 ExtendScript picked the wrong branch of the long chain.
- var names=[[reopen,'host-result'],[applying,'apply-result'],[exporting,'export-queued'],[real,'real-result'],[rframes,'rframes-result'],[depth,'depth-result'],[reapply,'reapply-result'],[snap,'snap-'+sname]],rn='phase1';
+ var names=[[reopen,'host-result'],[applying,'apply-result'],[exporting,'export-queued'],[real,'real-result'],[rframes,'rframes-result'],[depth,'depth-result'],[reapply,'reapply-result'],[snap,'snap-'+sname],[perf,'perf-result'],[perfx,'perfx-result']],rn='phase1';
  for(var ni=0;ni<names.length;ni++)if(names[ni][0]){rn=names[ni][1];break;}
  var dir=new Folder(root),report=new File(dir.fsName+'/'+rn+'.json'),log=[];
  function quote(s){return '"'+String(s).replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\r/g,'\\r').replace(/\n/g,'\\n')+'"';}
@@ -53,6 +57,40 @@
   if(!dir.exists)throw Error('Scratch folder missing');
   var rp=dir.fsName+'\\ppro-real.prproj',rt=[0.5,1.5,2.5];
   function at(s,t){s.setPlayerPosition(String(Math.round(t*254016000000)));app.enableQE();}
+  if(perfx){// Diagnostics on the already-open perf scratch project only.
+   var xp=dir.fsName+'/ppro-perf.prproj';if(!app.project||!same(app.project.path,xp))throw Error('Only the perf scratch project may be used. Refused.');
+   var xs=app.project.activeSequence;log.push('enc '+app.encoder.ENCODE_IN_TO_OUT+'/'+app.encoder.ENCODE_ENTIRE+' end '+xs.end+' clips '+xs.videoTracks[0].clips.numItems);
+   var base='C:/Program Files/Adobe/Adobe Premiere Pro 2024/MediaIO/systempresets/';
+   if(new File(dir.fsName+'/x-jpg1').exists&&!new Folder(dir.fsName+'/x-off').exists){// second pass: baseline without effect, then warm repeat with it
+    var xo=app.project.createNewSequenceFromClips('OdyGrade off',[app.project.rootItem.children[0]],app.project.rootItem);xo.setInPoint(0);xo.setOutPoint(4);$.sleep(3000);
+    var jp=new File(base+'3F3F3F3F_4A504547/JPEG Sequence (Match Source).epr').fsName;
+    var seqs=[['off',xo],['on3',xs],['off2',xo]];for(var k=0;k<seqs.length;k++){var fk=new Folder(dir.fsName+'/x-'+seqs[k][0]);fk.create();var tk=new Date().getTime();
+     var rk=seqs[k][1].exportAsMediaDirect(fk.fsName+'\\f.jpg',jp,1);log.push(seqs[k][0]+' fx='+seqs[k][1].videoTracks[0].clips[0].components.numItems+' ms='+(new Date().getTime()-tk)+' files='+fk.getFiles().length+' ret='+rk);}
+    write(true,'perfx done');return;}   var tries=[['jpg0','3F3F3F3F_4A504547/JPEG Sequence (Match Source).epr','f.jpg',0],['png0','3F3F3F3F_504E4720/PNG Sequence (Match Source).epr','f.png',0],['mp40','3F3F3F3F_4D6F6F56/01 - Match Source.epr','f.mp4',0],['jpg1','3F3F3F3F_4A504547/JPEG Sequence (Match Source).epr','f.jpg',1]];
+   for(var q=0;q<tries.length;q++){var tq=tries[q],fo=new Folder(dir.fsName+'/x-'+tq[0]);if(fo.exists)throw Error('exists '+tq[0]);fo.create();var t0=new Date().getTime(),rv;
+    try{rv=xs.exportAsMediaDirect(fo.fsName+'\\'+tq[2],new File(base+tq[1]).fsName,tq[3]);}catch(ex){rv='throw '+ex;}
+    log.push(tq[0]+' ms='+(new Date().getTime()-t0)+' files='+fo.getFiles().length+' ret='+rv);}
+   write(true,'perfx done');return;
+  }  if(perf){
+   if(app.projects.numProjects>0)throw Error('A project is already open. Refused; nothing modified.');
+   var pp=dir.fsName+'/ppro-perf.prproj';if(new File(pp).exists)throw Error('Existing project preserved; use a fresh scratch folder');
+   if(!app.newProject(pp)||!app.project||!same(app.project.path,pp))throw Error('Could not create the scratch project');
+   app.project.importFiles([dir.fsName+'/source.png'],true,app.project.rootItem,false);
+   var pi2=app.project.rootItem.children[0];if(!pi2)throw Error('Import failed');
+   var ps2=app.project.createNewSequenceFromClips('OdyGrade perf',[pi2],app.project.rootItem);if(!ps2)throw Error('Sequence creation failed');
+   app.project.activeSequence=ps2;ps2.setInPoint(0);ps2.setOutPoint(4);
+   log.push('timebase '+ps2.timebase+' in '+ps2.getInPoint()+' out '+ps2.getOutPoint());
+   var preset=new File('C:/Program Files/Adobe/Adobe Premiere Pro 2024/MediaIO/systempresets/3F3F3F3F_4A504547/JPEG Sequence (Match Source).epr');if(!preset.exists)throw Error('No JPEG preset');
+   function run(tag){var f=new Folder(dir.fsName+'/'+tag);if(f.exists)throw Error('exists '+tag);f.create();var t=new Date().getTime();
+    var ok=ps2.exportAsMediaDirect(f.fsName+'/f.jpg',preset.fsName,app.encoder.ENCODE_IN_TO_OUT);var ms=new Date().getTime()-t;
+    log.push(tag+' ms='+ms+' frames='+f.getFiles('*.jpg').length+' ret='+ok);}
+   run('off');
+   $.evalFile(new File($.fileName).parent.parent.fsName+'/host/bridge.jsx');ps2.videoTracks[0].clips[0].setSelected(true,true);
+   var pg=new File(dir.fsName+'/grade.odyn');pg.open('r');var psnap=pg.read();pg.close();var pt=new File(dir.fsName+'/params.txt');pt.open('r');var pparams=eval('('+pt.read()+')');pt.close();
+   var pr=eval('('+OdyHost.apply(encodeURIComponent(psnap),pparams)+')');log.push('apply='+pr.ok+' err='+pr.error);if(!pr.ok)throw Error(pr.error);
+   run('on');run('on2');app.project.save();
+   write(true,'Perf export done (off, on, on2).');return;
+  }
   if(real){
    if(app.projects.numProjects>0)throw Error('A project is already open. Refused; nothing modified.');
    if(new File(rp).exists)throw Error('Existing project preserved; use a fresh scratch folder');
