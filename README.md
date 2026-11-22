@@ -49,7 +49,7 @@ Spatial film effects cannot be encoded in .cube; they exist in PNG exports and J
 Build the effect (node tools/adobe.cjs --sdk <AfterEffectsSDK>), then npm run release.
 It writes ../OdyGrade-<version>-win64.zip with Install.cmd / Uninstall.cmd / README.txt:
 panel per user (unsigned, so CSXS.11 PlayerDebugMode is enabled), effect into
-Program Files\Adobe\Common\Plug-ins.0\MediaCore\OdyWorks after one UAC prompt and a
+Program Files/Adobe/Common/Plug-ins/7.0/MediaCore/OdyWorks after one UAC prompt and a
 SHA-256 check. Close both hosts first. Not a signed ZXP; not tested on a clean machine.
 Version lives in package.json; tests/version.test.cjs keeps CSXS, CMake, PiPL and the
 effect's my_version equal to it.
