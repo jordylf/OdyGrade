@@ -64,9 +64,9 @@ Switch on the tools you want, then set them with sliders. They run after the gra
 
 ## Real footage, graded with OdyGrade.
 
-Our own iPhone footage, straight from the timeline, not a marketing render.
+Our own Sony S-Log3 and iPhone footage, straight from the timeline, not a marketing render.
 
-<p align="center"><img src="docs/images/cover.jpg" width="100%" alt="Two frames before and after OdyGrade."></p>
+<p align="center"><img src="docs/images/before-after.gif" width="100%" alt="Animated before and after wipe: a Sony S-Log3 street frame and an iPhone portrait, each going from the camera original to the OdyGrade result."><br><sub>Drag-style wipe, recorded from real renders · S-Log3 from camera → OdyGrade · iPhone as shot → OdyGrade</sub></p>
 
 ### From S-Log3 to the look.
 
