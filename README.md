@@ -66,7 +66,7 @@ Switch on the tools you want, then set them with sliders. They run after the gra
 
 Our own Sony S-Log3 and iPhone footage, straight from the timeline, not a marketing render.
 
-<p align="center"><img src="docs/images/before-after.gif" width="100%" alt="Animated before and after wipe: a Sony S-Log3 street frame and an iPhone portrait, each going from the camera original to the OdyGrade result."><br><sub>Wipe recorded from real renders · S-Log3 from camera → warm film look · iPhone as shot → cold teal look</sub></p>
+<p align="center"><img src="docs/images/before-after.gif" width="100%" alt="Animated before and after wipe across three real shots: Sony S-Log3 street to a warm film look, an iPhone portrait to a cold teal look, and another S-Log3 street shot to a night-blue look. A small card shows the Tears of Steel still each grade was matched to."><br><sub>Wipe recorded from real renders · each look matched from one <i>Tears of Steel</i> still, shown in the corner</sub></p>
 
 ### From S-Log3 to the look.
 
