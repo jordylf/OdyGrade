@@ -13,6 +13,9 @@ var OdyHost = {
         var comp=app.project.activeItem;
         if(!(comp instanceof CompItem))throw Error("Open a composition first.");
         f=new File(base+".png");comp.saveFrameToPng(comp.time,f);
+        // AE 24 writes the PNG asynchronously: wait until it exists and its size stops changing.
+        var waited=0,last=-1;
+        while(waited<15000&&!(f.exists&&f.length>0&&f.length===last)){last=f.exists?f.length:-1;$.sleep(100);waited+=100;}
       }else{
         if(!app.project.activeSequence)throw Error("Open an active sequence first.");
         app.enableQE();var seq=qe.project.getActiveSequence();
