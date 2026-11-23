@@ -25,7 +25,7 @@ OdyGrade is a colour grading effect that lives on your timeline in After Effects
 
 The grade is frozen for the whole shot (no frame-to-frame pumping) and embedded in the effect, so it survives save, reopen and render. Every part stays editable.
 
-<p align="center"><img src="docs/images/match.jpg" width="100%" alt="Three panels: the original iPhone frame, the colour palette of the reference, and the OdyGrade result."><br><sub><b>Real demo.</b> iPhone footage → reference (shown as its palette) → OdyGrade result on the same frame</sub></p>
+<p align="center"><img src="docs/images/match.jpg" width="100%" alt="Three rows of footage, reference still and result: an iPhone portrait matched to a cold teal sniper scene, a Sony S-Log3 street matched to a warm amber interior, and the same iPhone portrait matched to a golden hazy skyline. The references are stills from Tears of Steel."><br><sub><b>Real demo.</b> Our footage → a still from <i>Tears of Steel</i> → OdyGrade result, no manual correction. One reference, one click.</sub></p>
 
 ---
 
@@ -66,13 +66,13 @@ Switch on the tools you want, then set them with sliders. They run after the gra
 
 Our own Sony S-Log3 and iPhone footage, straight from the timeline, not a marketing render.
 
-<p align="center"><img src="docs/images/before-after.gif" width="100%" alt="Animated before and after wipe: a Sony S-Log3 street frame and an iPhone portrait, each going from the camera original to the OdyGrade result."><br><sub>Drag-style wipe, recorded from real renders · S-Log3 from camera → OdyGrade · iPhone as shot → OdyGrade</sub></p>
+<p align="center"><img src="docs/images/before-after.gif" width="100%" alt="Animated before and after wipe: a Sony S-Log3 street frame and an iPhone portrait, each going from the camera original to the OdyGrade result."><br><sub>Wipe recorded from real renders · S-Log3 from camera → warm film look · iPhone as shot → cold teal look</sub></p>
 
 ### From S-Log3 to the look.
 
-A Sony A7 IV clip in S-Log3 / S-Gamut3.Cine, straight from the card. The camera profile turns the flat LOG image into normal colour, the reference match carries over the palette of a film still, and the film tools finish it.
+A Sony A7 IV clip in S-Log3 / S-Gamut3.Cine, straight from the card. The camera profile turns the flat LOG image into normal colour, the reference match carries over the look of a film still, and the film tools finish it.
 
-<p align="center"><img src="docs/images/slog3.jpg" width="100%" alt="Four panels of the same Sony S-Log3 frame: flat from the camera, after the S-Log3 profile, after the reference match, and with the Portrait stock, grain and halation. Below, the colour palette of the reference."><br><sub><b>Real demo.</b> Sony S-Log3 → S-Log3 profile → reference match → + film. The reference is shown as its palette only.</sub></p>
+<p align="center"><img src="docs/images/slog3.jpg" width="100%" alt="Four panels of the same Sony S-Log3 frame: flat from the camera, after the S-Log3 profile, after the reference match, and with the Portrait stock, grain and halation. Below, the reference still from Tears of Steel."><br><sub><b>Real demo.</b> Sony S-Log3 → S-Log3 profile → match to a warm <i>Tears of Steel</i> still → + film</sub></p>
 
 ---
 
@@ -176,4 +176,4 @@ npm run release                                # ../OdyGrade-<version>-win64.zip
 
 Host checks run only in an empty Untitled project or in scratch projects; they never close or replace an open project. [Status](docs/STATUS.md) · [Verification](docs/VERIFICATION.md) · [Development notes](docs/DEVELOPMENT.md)
 
-<sub>OdyGrade is an independent project. No looks, presets, LUTs, code or artwork from other grading products are included; all look and stock names and parameters are original. [Third-party notices](THIRD_PARTY_NOTICES.md).</sub>
+<sub>OdyGrade is an independent project. No looks, presets, LUTs, code or artwork from other grading products are included; all look and stock names and parameters are original. Reference stills in the demos: <i>Tears of Steel</i> (2012) © Blender Foundation | mango.blender.org, CC BY 3.0. [Third-party notices](THIRD_PARTY_NOTICES.md).</sub>

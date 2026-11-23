@@ -12,3 +12,8 @@ view design are documented in docs/COLOR-MANAGEMENT.md. No manufacturer LUT or
 camera footage is bundled; the encoded sample frames are synthetic project assets.
 Pocket Grade / Pocket CC are references owned by their respective creators.
 Their names identify the reference product only; this project is not affiliated.
+
+README demo images (docs/images/match.jpg, slog3.jpg) show stills from
+Tears of Steel (2012) (c) Blender Foundation | mango.blender.org, licensed
+CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). The stills are used
+unmodified as colour references; they are not shipped in the release package.
