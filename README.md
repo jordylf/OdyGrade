@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/images/hero.jpg" width="100%" alt="OdyGrade: reference colour grading for After Effects and Premiere Pro, with a before and after frame."></p>
+<p align="center"><img src="docs/images/hero.jpg" width="100%" alt="OdyGrade: reference colour grading for After Effects and Premiere Pro. A 3D colour-wheel logo beside a before and after split of a real frame."></p>
 
 <p align="center"><a href="https://github.com/jordylf/OdyGrade/releases/latest"><strong>Download for Windows ↗</strong></a> &nbsp; · &nbsp; <a href="#how-it-works">How it works</a> &nbsp; · &nbsp; <a href="#film-texture-in-one-panel">Film texture</a> &nbsp; · &nbsp; <a href="#from-s-log3-to-the-look">S-Log3 demo</a> &nbsp; · &nbsp; <a href="#install-in-three-steps">Install</a> &nbsp; · &nbsp; <a href="#questions">FAQ</a></p>
 
