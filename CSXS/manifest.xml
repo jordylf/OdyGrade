@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ExtensionManifest Version="7.0" ExtensionBundleId="com.odyworks.odygrade" ExtensionBundleVersion="0.5.1" ExtensionBundleName="OdyGrade">
-<ExtensionList><Extension Id="com.odyworks.odygrade.panel" Version="0.5.1"/></ExtensionList>
+<ExtensionManifest Version="7.0" ExtensionBundleId="com.odyworks.odygrade" ExtensionBundleVersion="0.5.2" ExtensionBundleName="OdyGrade">
+<ExtensionList><Extension Id="com.odyworks.odygrade.panel" Version="0.5.2"/></ExtensionList>
 <ExecutionEnvironment><HostList><Host Name="PPRO" Version="[24.0,24.9]"/><Host Name="AEFT" Version="[24.0,24.9]"/></HostList><LocaleList><Locale Code="All"/></LocaleList><RequiredRuntimeList><RequiredRuntime Name="CSXS" Version="11.0"/></RequiredRuntimeList></ExecutionEnvironment>
 <DispatchInfoList><Extension Id="com.odyworks.odygrade.panel"><DispatchInfo><Resources><MainPath>./index.html</MainPath><ScriptPath>./host/bridge.jsx</ScriptPath></Resources><Lifecycle><AutoVisible>true</AutoVisible></Lifecycle><UI><Type>Panel</Type><Menu>OdyGrade - Reference Color</Menu><Geometry><Size><Width>1100</Width><Height>850</Height></Size><MinSize><Width>360</Width><Height>500</Height></MinSize></Geometry></UI></DispatchInfo></Extension></DispatchInfoList>
 </ExtensionManifest>

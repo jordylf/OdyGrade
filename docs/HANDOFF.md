@@ -10,8 +10,8 @@ Updated: 2026-11-23 (Asia/Jakarta)
   stretched to the reference's spread (slope ~4.9). Fix: tone-map knots expand each segment at
   most 2x (MAX_TONE_SLOPE / bounded_knots, JS == C++); compression and midtones unchanged.
 - Tests: engine "tone mapping slope is bounded" (failed 4.31 before) + native parity; npm test 70/70.
-- Plugin binary not rebuilt/released: installed 0.5.1 .aex still has the old slope. Needs
-  adobe.cjs build + release (0.5.2) before hosts get the fix.
+- Released 0.5.2 (OdyGrade-0.5.2-win64.zip, plugin sha256 180249251F65...C6A); core tests +
+  actual-SDK adapter harness PASS. Not yet installed / live-checked in AE or Premiere.
 - README showcase docs/images/slog3.jpg (16:9 crops, reference shown as palette only).
 
 ## Previous checkpoint — 0.5.1 fast trims (Claude, 2026-11-23)

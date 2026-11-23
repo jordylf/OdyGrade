@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(OdyGradeCore VERSION 0.5.1 LANGUAGES CXX)
+project(OdyGradeCore VERSION 0.5.2 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Static CRT: Premiere/AE 2024 load their own msvcp140 14.23, older than our toolset; the

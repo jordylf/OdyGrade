@@ -112,7 +112,7 @@ Move match strength, exposure, temperature, tint, contrast, saturation and skin 
 
 ## Install in three steps.
 
-1. **Download** `OdyGrade-0.5.1-win64.zip` from the [latest release](https://github.com/jordylf/OdyGrade/releases/latest) and extract it.
+1. **Download** `OdyGrade-0.5.2-win64.zip` from the [latest release](https://github.com/jordylf/OdyGrade/releases/latest) and extract it.
 2. **Close After Effects and Premiere Pro, then run `Install.cmd`.** It asks once for administrator rights to copy the effect and checks its SHA-256.
 3. **Open Window › Extensions › OdyGrade.** The effect is in Video Effects › OdyWorks › OdyGrade.
 
