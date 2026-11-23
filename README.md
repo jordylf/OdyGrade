@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/hero.jpg" width="100%" alt="OdyGrade: reference colour grading for After Effects and Premiere Pro, with a before and after frame."></p>
 
-<p align="center"><a href="https://github.com/jordylf/OdyGrade/releases/latest"><strong>Download for Windows ↗</strong></a> &nbsp; · &nbsp; <a href="#how-it-works">How it works</a> &nbsp; · &nbsp; <a href="#film-texture-in-one-panel">Film texture</a> &nbsp; · &nbsp; <a href="#install-in-three-steps">Install</a> &nbsp; · &nbsp; <a href="#questions">FAQ</a></p>
+<p align="center"><a href="https://github.com/jordylf/OdyGrade/releases/latest"><strong>Download for Windows ↗</strong></a> &nbsp; · &nbsp; <a href="#how-it-works">How it works</a> &nbsp; · &nbsp; <a href="#film-texture-in-one-panel">Film texture</a> &nbsp; · &nbsp; <a href="#from-s-log3-to-the-look">S-Log3 demo</a> &nbsp; · &nbsp; <a href="#install-in-three-steps">Install</a> &nbsp; · &nbsp; <a href="#questions">FAQ</a></p>
 
 <p align="center"><sub>REFERENCE GRADING · AFTER EFFECTS & PREMIERE PRO 2024 · WINDOWS</sub></p>
 
@@ -111,6 +111,8 @@ Move match strength, exposure, temperature, tint, contrast, saturation and skin 
 <p align="center"><sub>INSTALL</sub></p>
 
 ## Install in three steps.
+
+> **New in 0.5.2:** cleaner skies and highlights when matching real LOG footage. Crowded highlights are no longer stretched hard toward the reference; midtones look the same as in 0.5.1. Earlier versions are on the [releases page](https://github.com/jordylf/OdyGrade/releases).
 
 1. **Download** `OdyGrade-0.5.2-win64.zip` from the [latest release](https://github.com/jordylf/OdyGrade/releases/latest) and extract it.
 2. **Close After Effects and Premiere Pro, then run `Install.cmd`.** It asks once for administrator rights to copy the effect and checks its SHA-256.
