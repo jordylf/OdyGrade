@@ -6,3 +6,4 @@ release/
 .playwright-mcp/
 
 .adobe-build/
+.codebase-memory/

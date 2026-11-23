@@ -1,8 +1,21 @@
 # Claude handoff — OdyGrade
-Updated: 2026-11-23 (Asia/Jakarta)
+Updated: 2026-11-24 (Asia/Jakarta)
 
 
 
+
+## 2026-11-24 — 0.5.3: AE capture, Sony profile detection, LOG sky rolloff, 40 MP
+- AE 24 saveFrameToPng is async: bridge waits until the PNG exists and its size is stable.
+- Capture reads Sony NonRealTimeMeta XML (CaptureGammaEquation/CaptureColorPrimaries) of the
+  footage under the playhead; panel selects S-Log3/S-Gamut3.Cine or HLG (exact matches only).
+- Blotchy S-Log3 skies with bright halos: max-channel highlight scaling made a clipped sky's
+  brightness follow its tint. Fix (JS == C++ normalize_input): clip negatives, keep peak scaling,
+  fade toward white at the peak value as scene peak goes 1x..4x (smoothstep on log2 peak).
+  Luminance-based variants broke the 65^3 LUT accuracy test (max 64-77); this one: max 19.
+- Frame limit 16 MP -> 40 MP in adapter, panel and CLI (5K open gate 4992x3328 = 16.6 MP failed).
+- Released 0.5.3 (OdyGrade-0.5.3-win64.zip, plugin sha256 145C6F7AFC0D...E426); npm test 75/75,
+  actual-SDK harness PASS. Equivalent build live-checked in AE 24.6 (FX5 5K S-Log3 + Shutter
+  Island reference); the 0.5.3-stamped zip itself was not installed.
 
 ## Latest checkpoint — real S-Log3 footage, highlight tone slope (Claude, 2026-11-23)
 - Real Sony A7 IV S-Log3/S-Gamut3.Cine clip (runs/slog3-20261123): fit-shot + still-native.

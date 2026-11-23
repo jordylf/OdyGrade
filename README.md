@@ -112,9 +112,9 @@ Move match strength, exposure, temperature, tint, contrast, saturation and skin 
 
 ## Install in three steps.
 
-> **New in 0.5.2:** cleaner skies and highlights when matching real LOG footage. Crowded highlights are no longer stretched hard toward the reference; midtones look the same as in 0.5.1. Earlier versions are on the [releases page](https://github.com/jordylf/OdyGrade/releases).
+> **New in 0.5.3:** clean, blotch-free skies on Sony S-Log3 and other LOG footage, 5K–8K frames up to 40 megapixels, **Capture Adobe frame** fixed in After Effects 2024, and the camera profile picked automatically from Sony clip metadata. Earlier versions are on the [releases page](https://github.com/jordylf/OdyGrade/releases).
 
-1. **Download** `OdyGrade-0.5.2-win64.zip` from the [latest release](https://github.com/jordylf/OdyGrade/releases/latest) and extract it.
+1. **Download** `OdyGrade-0.5.3-win64.zip` from the [latest release](https://github.com/jordylf/OdyGrade/releases/latest) and extract it.
 2. **Close After Effects and Premiere Pro, then run `Install.cmd`.** It asks once for administrator rights to copy the effect and checks its SHA-256.
 3. **Open Window › Extensions › OdyGrade.** The effect is in Video Effects › OdyWorks › OdyGrade.
 
@@ -168,7 +168,7 @@ Windows only, and not yet tested on a clean machine. Output is SDR: values above
 Node 18+, CMake 3.20+, Visual Studio 2022 Build Tools and the After Effects SDK:
 
 ```powershell
-npm test                                       # JS engine, profiles, panel, version (70 tests)
+npm test                                       # JS engine, profiles, panel, version (75 tests)
 node tools/native.cjs build                    # portable C++ core + offline renderer
 node tools/adobe.cjs --sdk <AfterEffectsSDK>   # OdyGrade.aex + adapter tests
 npm run release                                # ../OdyGrade-<version>-win64.zip
