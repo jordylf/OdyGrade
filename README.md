@@ -54,9 +54,9 @@ Switch on the tools you want, then set them with sliders. They run after the gra
 </tr>
 </table>
 
-<p align="center"><img src="docs/images/film.jpg" width="100%" alt="Grade only, 16 mm grain at ISO 400, Super 8 with gate weave, dust and perforations, and 35 mm with perforations and dust."><br><sub><b>Real demo.</b> Grade only · 16 mm grain · Super 8 · 35 mm</sub></p>
+<p align="center"><img src="docs/images/film.jpg" width="100%" alt="Six cards of the same Sony S-Log3 street frame: grade only, 35 mm with grain, halation and bloom, 16 mm with grain, weave and dust, Super 8 with weave, flicker, dust and a perforation, bleach bypass, and Scope 2.39 bars. Grain cards include a 2x zoom."><br><sub><b>Real demo.</b> Same graded S-Log3 frame · Grade only · 35 mm · 16 mm · Super 8 · Bleach bypass · Scope 2.39</sub></p>
 
-<p align="center"><img src="docs/images/stocks.jpg" width="100%" alt="The same frame through each film stock: none, tungsten, daylight, portrait, chrome, consumer, print, mono and expired."><br><sub>Tungsten 500 · Daylight 250 · Portrait 400 · Chrome 100 · Consumer 200 · Cinema Print · Mono 400 · Expired: our own colour responses, not copies of any manufacturer's film</sub></p>
+<p align="center"><img src="docs/images/stocks.jpg" width="100%" alt="The same iPhone portrait through each film stock: none, Tungsten 500, Daylight 250, Portrait 400, Chrome 100, Consumer 200, Cinema Print, Mono 400 and Expired."><br><sub>Eight stocks with an amount slider: our own colour responses, not copies of any manufacturer's film</sub></p>
 
 ---
 
