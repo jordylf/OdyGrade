@@ -70,9 +70,9 @@ Our own Sony S-Log3 and iPhone footage, straight from the timeline, not a market
 
 ### From S-Log3 to the look.
 
-A Sony A7 IV clip in S-Log3 / S-Gamut3.Cine, straight from the card. The camera profile turns the flat LOG image into normal colour, the reference match carries over the look of a film still, and the film tools finish it.
+A Sony 5K open-gate clip in S-Log3 / S-Gamut3.Cine, straight from the card, graded in After Effects from one film still. OdyGrade reads the camera profile from the clip's metadata, turns the flat LOG image into normal colour and carries over the deep greens and warm skin of the reference.
 
-<p align="center"><img src="docs/images/slog3.jpg" width="100%" alt="Four panels of the same Sony S-Log3 frame: flat from the camera, after the S-Log3 profile, after the reference match, and with the Portrait stock, grain and halation. Below, the reference still from Tears of Steel."><br><sub><b>Real demo.</b> Sony S-Log3 → S-Log3 profile → match to a warm <i>Tears of Steel</i> still → + film</sub></p>
+<p align="center"><img src="docs/images/slog3.jpg" width="100%" alt="Two shots of a woman in a yellow kimono in a garden. Left, the flat grey Sony S-Log3 frames from the camera; right, the same frames graded by OdyGrade in After Effects with deep green foliage and warm skin. Below, the Shutter Island reference still and a palette of eight colours measured from it."><br><sub><b>Real demo, rendered in After Effects.</b> Sony S-Log3 → one click, matched to a still from <i>Shutter Island</i> (2010)</sub></p>
 
 ---
 
@@ -158,7 +158,7 @@ The panel is not signed as a ZXP yet, and Adobe only loads unsigned panels in de
 
 <details><summary><b>What are the limits?</b></summary>
 
-Windows only, and not yet tested on a clean machine. Output is SDR: values above 1.0 are clipped in AE 32 bpc. LOG profiles follow the published curves; Sony S-Log3 is checked with real A7 IV footage, the others only against the curves. Matching is statistical, not a trained model. See [Status](docs/STATUS.md).
+Windows only, and not yet tested on a clean machine. Output is SDR: values above 1.0 are clipped in AE 32 bpc. LOG profiles follow the published curves; Sony S-Log3 is checked with real A7 IV and 5K open-gate footage, the others only against the curves. Matching is statistical, not a trained model. See [Status](docs/STATUS.md).
 </details>
 
 ---
@@ -176,4 +176,4 @@ npm run release                                # ../OdyGrade-<version>-win64.zip
 
 Host checks run only in an empty Untitled project or in scratch projects; they never close or replace an open project. [Status](docs/STATUS.md) · [Verification](docs/VERIFICATION.md) · [Development notes](docs/DEVELOPMENT.md)
 
-<sub>OdyGrade is an independent project. No looks, presets, LUTs, code or artwork from other grading products are included; all look and stock names and parameters are original. Reference stills in the demos: <i>Tears of Steel</i> (2012) © Blender Foundation | mango.blender.org, CC BY 3.0. [Third-party notices](THIRD_PARTY_NOTICES.md).</sub>
+<sub>OdyGrade is an independent project. No looks, presets, LUTs, code or artwork from other grading products are included; all look and stock names and parameters are original. Reference stills in the demos: <i>Tears of Steel</i> (2012) © Blender Foundation | mango.blender.org, CC BY 3.0; <i>Shutter Island</i> (2010) © Paramount Pictures, still via @colorpalette.cinema, shown only as a colour reference. [Third-party notices](THIRD_PARTY_NOTICES.md).</sub>
