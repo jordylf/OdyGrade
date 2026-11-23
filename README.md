@@ -1,119 +1,89 @@
-# OdyGrade
-Local reference-based color grading, initially targeting **Premiere Pro 2024**.
-AE 2024 adapter is included but unverified. Resolve is future work.
-This is an early implementation, not a finished Pocket Grade replacement.
-The requested product is an **in-Adobe plugin only**. Browser preview and CLI
-are internal development tools. The current CEP development package and portable
-core are not a working native timeline effect; the real Adobe SDK/adapter gate
-in docs/NEXT-NATIVE-INTEGRATION.md must be completed before calling it a plugin release.
+<p align="center"><img src="docs/images/cover.jpg" width="100%" alt="Two iPhone frames before and after an OdyGrade reference match: deeper shadows and a filmic palette."></p>
 
-The SDK-independent native C++ renderer now builds and has differential tests against
-the JS engine. It supports high-precision buffers and 16-bit PNG still rendering;
-it is **not** a compiled Adobe effect. Full-film video rendering is now available
-through video-native; see docs/NATIVE-VIDEO.md for the offline pipeline contract.
+<p align="center"><a href="https://github.com/jordylf/OdyGrade/releases/latest"><strong>Download for Windows ↗</strong></a> &nbsp; · &nbsp; <a href="#install">Install</a> &nbsp; · &nbsp; <a href="docs/COLOR-MANAGEMENT.md">Color profiles</a> &nbsp; · &nbsp; <a href="docs/STATUS.md">Status</a> &nbsp; · &nbsp; <a href="docs/DEVELOPMENT.md">Development</a></p>
 
-## Run
-Node 18+; zero npm dependencies.
-- npm test
-- npm run check
-- npm run dev
-- Open http://127.0.0.1:5184
-- npm run package — stage unsigned CEP assets
+OdyGrade grades your footage to look like a reference still, right inside **After Effects** and **Premiere Pro 2024**. Pick a frame, drop in a film still you love, press **Create grade**, then fine-tune looks, film stocks, grain and halation. All of it runs in a native effect on your timeline.
 
-Load a source still and film/reference screenshot, then Create grade.
-Fine-tune correction, look strength, skin hue protection, palette and film controls.
-Save JSON to resume work; export .cube for the color transform or PNG for a full still.
+**Current release: [0.5.1](https://github.com/jordylf/OdyGrade/releases/tag/v0.5.1)** · Windows x64 · live-tested in After Effects 24.6 and Premiere Pro 24.6.
 
-**Choose the source profile; output is sRGB SDR.** Supported sources are sRGB,
-Rec.709 display gamma 2.4, HLG/Rec.2020 (iPhone HDR), and log curves from Sony, Panasonic,
-ARRI, Canon, Fujifilm, DJI, Apple and Blackmagic (see docs/COLOR-MANAGEMENT.md).
-Use sRGB if your editor already normalized the footage. Camera values must be full
-range and unconverted. Reference screenshots remain sRGB. The camera profiles use
-official transfer/primary definitions plus our own SDR view, not a manufacturer's
-creative LUT or full ACES/HDR/RAW workflow. Read docs/COLOR-MANAGEMENT.md.
-Synthetic samples demonstrate controls, not production footage quality.
+## Match a reference, keep it editable
 
-## Use the LUT in Adobe / Resolve
-Premiere: Lumetri Color > Creative > Look > Browse, then select the .cube file.
-The LUT must receive the input encoding stored in its recipe and outputs sRGB.
-The Creative Look example is appropriate only when its input matches that encoding;
-Adobe's host pipeline has not been verified here. A camera LUT includes normalization:
-do not apply another camera conversion before it. Camera LUTs default to 65³ and
-still have interpolation error on extreme colors; see docs/COLOR-MANAGEMENT.md.
-AE: apply a compatible LUT-loading effect manually. Resolve: import the LUT
-and apply at a stage matching the recipe's input domain. Native editable node construction
-and automatic timeline application are **not implemented**.
-Spatial film effects cannot be encoded in .cube; they exist in PNG exports and JSON.
+<p align="center"><img src="docs/images/panel.jpg" width="360" alt="The OdyGrade panel: preview, Create grade, ten looks and the film stock menu."><br><sub>The OdyGrade panel at docked size · synthetic sample frames</sub></p>
 
-## Install (Windows, After Effects / Premiere Pro 2024)
-Build the effect (node tools/adobe.cjs --sdk <AfterEffectsSDK>), then npm run release.
-It writes ../OdyGrade-<version>-win64.zip with Install.cmd / Uninstall.cmd / README.txt:
-panel per user (unsigned, so CSXS.11 PlayerDebugMode is enabled), effect into
-Program Files/Adobe/Common/Plug-ins/7.0/MediaCore/OdyWorks after one UAC prompt and a
-SHA-256 check. Close both hosts first. Not a signed ZXP; not tested on a clean machine.
-Version lives in package.json; tests/version.test.cjs keeps CSXS, CMake, PiPL and the
-effect's my_version equal to it.
+The panel measures tone, palette and chroma in your frame and the reference, then freezes them into one grade. That grade is used for every frame of the shot, so there is no frame-to-frame pumping. **Skin hue protection** keeps faces from drifting toward the reference palette.
 
-## Adobe 2024 CEP development installation
-1. npm run package
-2. Review tools/install-dev.ps1.
-3. powershell -ExecutionPolicy Bypass -File tools/install-dev.ps1 -EnableDebug
-4. Restart Premiere/AE 2024. Open Window > Extensions > OdyGrade.
-The script copies a development build into the per-user CEP folder and optionally
-enables CSXS.11 PlayerDebugMode. It refuses to overwrite an existing installation.
-These actions are not performed just by generating the package.
-No signed ZXP is supplied. Do not describe this as a production installer.
+Everything stays editable: match strength, exposure / white-balance trims, contrast, saturation, faded blacks and highlight softness. The grade is embedded in the effect, so it survives save, reopen and render (Media Encoder included).
 
-## Native core development
+- **Apply to selected clips:** puts the effect and grade on every selected layer or clip in one undo step.
+- **Save .odyn / Open:** reuse a grade on other shots and projects.
+- **Export .cube:** a colour-only LUT for other apps.
+- **Ten original looks:** Neutral, Amber Hour, Nocturne, Evergreen, Rose Memory, Silver Screen, Coastal Blue, Earth & Ochre, Cyan District, Velvet Night.
 
+## Film stocks
+
+<p align="center"><img src="docs/images/stocks.jpg" width="100%" alt="The same frame through each OdyGrade film stock: none, tungsten, daylight, portrait, chrome, consumer, print, mono and expired."><br><sub>Same frame, each stock at 100% · real iPhone footage</sub></p>
+
+Tungsten, Daylight, Portrait, Chrome, Consumer, Print, Mono and Expired, blended in with **Stock amount**. They are our own colour responses, not copies of any manufacturer's film or LUT.
+
+## Film texture
+
+<p align="center"><img src="docs/images/film.jpg" width="100%" alt="Grade only, 16 mm grain at ISO 400, Super 8 with gate weave, dust and perforations, and 35 mm with perforations and dust."></p>
+
+- **Grain:** classic pixel grain, or 8 / 16 / 35 / 65 mm gauges with an ISO control.
+- **Light:** bloom and halation.
+- **Frame:** vignette, bleach bypass, and 1.33 / 1.85 / 2.39 mattes that respect the pixel aspect ratio.
+- **Film formats:** Regular 8, Super 8, 16 mm, Super 16, 35 mm and IMAX, with gate weave, flicker, dust and perforations.
+
+Grain moves over time but is deterministic: a frame always renders the same, in any order and with Multi-Frame Rendering.
+
+## Your camera, your profile
+
+Choose the source profile so the match starts from the right encoding:
+
+- **sRGB**, or **Rec.709 gamma 2.4**
+- **HLG / Rec.2020** for iPhone HDR video. Use it in After Effects. Premiere tone-maps HLG to Rec.709 by default, so use sRGB there.
+- **LOG:** Sony S-Log3, Panasonic V-Log, ARRI LogC3, Canon C-Log3, Fujifilm F-Log, DJI D-Log, Apple Log, Blackmagic Film Gen 5
+
+Output is SDR. See [Color management](docs/COLOR-MANAGEMENT.md) for the curves and limits.
+
+## Fast enough for the timeline
+
+1080×1920 frames with grade, film stock, 35 mm grain, bloom, halation, weave and dust:
+
+| Host | Measured |
+| --- | --- |
+| After Effects 24.6, 120-frame render | 54.4 s (113.9 s in 0.4) · 61.3 s with trims |
+| Premiere Pro 24.6, JPEG sequence export | 0.26 s per frame (0.07 s without the effect) |
+
+The effect does the whole grade in one pass and shares the CPU between frames that AE renders at the same time (Multi-Frame Rendering).
+
+## Install
+
+1. Download **OdyGrade-0.5.1-win64.zip** from the [latest release](https://github.com/jordylf/OdyGrade/releases/latest) and extract it.
+2. Close After Effects and Premiere Pro.
+3. Run **Install.cmd**. It asks once for administrator rights to copy the effect, and checks its SHA-256.
+4. Open **Window › Extensions › OdyGrade**. The effect is in **Video Effects › OdyWorks › OdyGrade**.
+
+**Uninstall.cmd** removes both. The panel is unsigned, so the installer turns on CEP debug mode (`PlayerDebugMode`, CSXS.11) for your user; a previous panel is moved to `%LOCALAPPDATA%\OdyGrade\backup`.
+
+## Build & verify
+
+Node 18+, CMake 3.20+, Visual Studio 2022 Build Tools and the After Effects SDK:
+
+```powershell
+npm test                                       # JS engine, profiles, panel, version (68 tests)
+node tools/native.cjs build                    # portable C++ core + offline renderer
+node tools/adobe.cjs --sdk <AfterEffectsSDK>   # OdyGrade.aex + adapter tests
+npm run release                                # ../OdyGrade-<version>-win64.zip
 ```
-npm run native:build
-npm run native:test
-node tools/cli.cjs still-native --recipe assets/sample-grade.json --input assets/sample-source.png --output graded16.png
-```
 
-Build requires CMake 3.20+ and a C++17 compiler (Visual Studio 2022 Build Tools on Windows).
-Native still rendering additionally requires FFmpeg/ffprobe. Pixel processing retains
-16-bit precision; this does not recover precision missing in an 8-bit source/reference.
-Native tests are skipped by npm test if the renderer has not been built. Run
-native:build and native:test explicitly before claiming native verification.
+Host checks run only in an empty Untitled project or in scratch projects; they never close or replace an open project. Results and limits: [Status](docs/STATUS.md) · [Verification](docs/VERIFICATION.md) · [Development notes](docs/DEVELOPMENT.md).
 
-npm run archive regenerates source, CEP-development and Windows-native-development
-ZIPs under outputs using Python's standard library. The native development kit is
-unsigned, requires a compatible Windows VC runtime, and is not a clean-machine installer.
+## Limits
 
-Host capture is experimental: Premiere uses undocumented QE, AE uses
-saveFrameToPng. The adapter never changes project in/out points or timeline clips.
-If capture fails, manually export an image and load it. Current host verification
-status and missing product features are in docs/STATUS.md.
+- Windows only, not yet tested on a clean machine. No signed ZXP.
+- SDR output. Values above 1.0 are clipped in AE 32 bpc and untested in Premiere.
+- LOG profiles are checked against their published curves, not yet with real camera footage.
+- Matching is statistical (tone, palette, chroma), not a trained model; skin protection is a colour heuristic.
 
-## Algorithm
-Fit robust luminance quantiles and three tonal-region OKLab chroma means/scales.
-Exclude transparent pixels and near-black bars. Apply bounded palette transfer,
-monotone luminance matching, optional skin-hue protection, and independent controls.
-One fitted model is reused without per-frame analysis. This avoids algorithmic
-frame-to-frame pumping; it does not solve shot changes, lighting changes or tracking.
-Skin protection is a color heuristic, not semantic detection.
-The current method is statistical, not a trained neural model.
-Input normalization precedes analysis; source/reference black bars are excluded
-in that normalized domain. JSON v2 stores the profile and reads v1 files as sRGB.
-
-## Development handoff
-Read docs/HANDOFF.md, docs/STATUS.md, and docs/REFERENCE-EVIDENCE.md before extending.
-Do not confuse passing mathematical tests or browser screenshots with host evidence.
-Keep unsupported features explicit. No proprietary Pocket assets, presets or
-algorithms are bundled. All look names and look parameters here are original.
-
-## CLI media workflow
-node tools/cli.cjs help
-
-Use fit for a frozen recipe, cube for a LUT, and still for PNG. video-native applies
-the full C++ stack with RGBA16 transport, preserved CFR/VFR timing, alpha-aware
-ProRes output and offset-preserving PCM24 audio. See docs/NATIVE-VIDEO.md.
-The legacy video command remains LUT/color-only and rejects spatial film controls.
-FFmpeg is external. Native video is offline execution, not an Adobe timeline effect.
-Use profiles to list source encodings and fit --profile <id> to select one.
-
-Use `fit-shot` to analyze several time-sampled frames from one shot instead of a
-single still. The resulting frozen recipe works with `video-native` and LUT export.
-See [shot analysis](docs/SHOT-ANALYSIS.md) for commands, range semantics and limits.
+No looks, presets, LUTs or code from other grading products are included; all look and stock names and parameters are original. [Third-party notices](THIRD_PARTY_NOTICES.md).
