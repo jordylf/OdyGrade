@@ -12,7 +12,7 @@ function args(argv){
 function required(o,k){if(!o[k])throw Error('Missing --'+k);return o[k];}
 function readImage(filename){
  const p=cp.execFileSync('ffprobe',['-v','error','-select_streams','v:0','-show_entries','stream=width,height','-of','json',filename],{encoding:'utf8',windowsHide:true});
- const s=JSON.parse(p).streams[0];if(!s||s.width*s.height>16000000)throw Error('Image must be at most 16 megapixels');
+ const s=JSON.parse(p).streams[0];if(!s||s.width*s.height>40000000)throw Error('Image must be at most 40 megapixels');
  const raw=cp.execFileSync('ffmpeg',['-v','error','-i',filename,'-frames:v','1','-f','rawvideo','-pix_fmt','rgba','pipe:1'],{maxBuffer:128*1024*1024,windowsHide:true});
  // ffmpeg autorotation can swap dimensions. Refuse unexpected layout instead of misreading it.
  if(raw.length!==s.width*s.height*4)throw Error('Unexpected image dimensions; normalize image orientation first.');

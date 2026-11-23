@@ -60,6 +60,14 @@ test('our SDR display rolloff is continuous, monotone and bounds camera outputs'
  for(const id of Object.keys(CM.PROFILES))for(const rgb of [[0,0,0],[1,1,1],[1,0,0],[0,1,0],[0,0,1]])
   assert.ok(CM.create(id)(rgb).every(v=>Number.isFinite(v)&&v>=0&&v<=1));
 });
+test('bright LOG pixels: brightness follows the scene, not the tint (no blotchy skies)',()=>{
+ const toY=c=>{const l=c.map(v=>v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4));return .2126*l[0]+.7152*l[1]+.0722*l[2];};
+ const convert=CM.create('sony-slog3-sgamut3cine');
+ for(const tint of [1,.985,.97,.95]){let last=-1;
+  for(let v=.3;v<=1;v+=.002){const y=toY(convert([v*tint,v*tint*1.003,v]));assert.ok(y>=last-1e-9,'tint '+tint+' code '+v.toFixed(3));last=y;}}
+ // A 1.5% bluer near-white sky pixel stays almost as bright (old max-channel scaling lost ~15%).
+ const a=toY(convert([.7,.7,.7])),b=toY(convert([.7*.985,.7*.985*1.003,.7]));assert.ok(b>a*.95,a+' vs '+b);
+});
 test('profile selection is validated and a fitted grade cannot silently change input encoding',()=>{
  for(const id of ['__proto__','log','sony-venice','constructor'])assert.throws(()=>E.settings({inputProfile:id}),/profile/);
  const source={width:16,height:16,data:new Uint8ClampedArray(16*16*4)};

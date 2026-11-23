@@ -13,7 +13,7 @@ function renderStill(recipe,input,output){
  if(!fs.existsSync(exe))throw Error('Native renderer is not built. Run npm run native:build.');
  const probe=JSON.parse(run('ffprobe',['-v','error','-select_streams','v:0','-show_entries','stream=width,height','-of','json',input],{encoding:'utf8'}));
  const stream=probe.streams[0];
- if(!stream||stream.width<1||stream.height<1||stream.width*stream.height>16000000)throw Error('Image must be at most 16 megapixels.');
+ if(!stream||stream.width<1||stream.height<1||stream.width*stream.height>40000000)throw Error('Image must be at most 40 megapixels.');
  const {width,height}=stream,raw=run('ffmpeg',['-v','error','-i',input,'-frames:v','1','-pix_fmt','rgba64le','-f','rawvideo','pipe:1']);
  if(raw.length!==width*height*8)throw Error('Unexpected image dimensions; normalize orientation first.');
  const temp=fs.mkdtempSync(path.join(os.tmpdir(),'odygrade-native-'));

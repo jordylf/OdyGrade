@@ -36,7 +36,7 @@ function plan(metadata,frameData,alpha){
  let sar=video.sample_aspect_ratio&&!['N/A','0:1'].includes(video.sample_aspect_ratio)?rational(video.sample_aspect_ratio,':'):rational('1/1');
  let width=video.width,height=video.height;
  if(rotation===90||rotation===270){[width,height]=[height,width];sar=rational(sar.den+'/'+sar.num);}
- if(!Number.isSafeInteger(width)||!Number.isSafeInteger(height)||width<1||height<1||width*height>16000000)throw Error('Video must be at most 16 megapixels per frame.');
+ if(!Number.isSafeInteger(width)||!Number.isSafeInteger(height)||width<1||height<1||width*height>40000000)throw Error('Video must be at most 40 megapixels per frame.');
  if(sar.value<1/16||sar.value>16)throw Error('Unsupported pixel aspect ratio.');
  const cfr=durations.every(d=>d===durations[0]);
  const audio=metadata.streams.filter(s=>s.codec_type==='audio'),videoOrigin=pts[0]*tb.value;

@@ -63,18 +63,27 @@
   }
   function encodeSRGB(x){return x<=.0031308?12.92*x:1.055*Math.pow(x,1/2.4)-.055;}
   // A project-owned display rendering, not Sony LC-709, Panasonic V-709 or ACES.
-  // Preserve mids; compress peak RGB above 0.8 and scale all channels together.
-  // This retains positive-channel ratios and avoids large independent-channel
-  // clipping errors in an interpolated LUT. Negative out-of-gamut RGB is clipped.
+  // Preserve mids; compress peak RGB above 0.8 and scale all channels together (keeps hue and
+  // avoids independent-channel clipping errors in an interpolated LUT). Then fade toward white
+  // at that peak value as the scene peak goes from 1x to 4x: without it, a clipped sky's
+  // brightness followed its tint and noisy LOG skies turned into blotches (2026-11-24).
+  // Negative out-of-gamut RGB is clipped first so the fade has no kink inside a LUT cell.
+  // Mirrored by normalize_input in native/src/core.cpp.
   function displayMap(x){x=Math.max(0,x);return x<=.8?x:.8+.2*(1-Math.exp(-(x-.8)/.2));}
+  function smooth(a,b,x){var t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t);}
+  function sceneToDisplay(c){
+    c=c.map(function(x){return Math.max(0,x);});
+    var peak=Math.max(c[0],c[1],c[2]),d=displayMap(peak),s=peak>.8?d/peak:1,w=smooth(0,2,Math.log(Math.max(peak,1e-6))/Math.LN2);
+    return c.map(function(x){return d+(x*s-d)*(1-w);});
+  }
   function toLinear709(rgb,id){var p=profile(id);return vector(p.matrix,rgb.map(function(x){return decode(x,p.transfer);}));}
   function create(id){
     var p=profile(id);
     if(id==='srgb')return function(rgb){return rgb.slice();};
     return function(rgb){
       var linear=vector(p.matrix,rgb.map(function(x){return decode(x,p.transfer);}));
-      var peak=Math.max(linear[0],linear[1],linear[2],0),scale=p.scene&&peak>.8?displayMap(peak)/peak:1;
-      return linear.map(function(x){return Math.max(0,Math.min(1,encodeSRGB(x*scale)));});
+      if(p.scene)linear=sceneToDisplay(linear);
+      return linear.map(function(x){return Math.max(0,Math.min(1,encodeSRGB(x)));});
     };
   }
   return {PROFILES:PROFILES,profile:profile,create:create,toLinear709:toLinear709,decode:decode,

@@ -135,7 +135,7 @@ function pixels(img,maxSize){
 function paint(canvas,image){canvas.width=image.width;canvas.height=image.height;canvas.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(image.data),image.width,image.height),0,0);}
 function loadImage(url){
  return new Promise(function(resolve,reject){var img=new Image();img.onload=function(){
-  if(img.naturalWidth*img.naturalHeight>16000000)return reject(Error("Use a still image up to 16 megapixels."));
+  if(img.naturalWidth*img.naturalHeight>40000000)return reject(Error("Use a still image up to 40 megapixels."));
   resolve(img);};img.onerror=function(){reject(Error("Cannot decode this image. Use PNG, JPG or WebP."));};img.src=url;});
 }
 async function setImage(which,url,label){

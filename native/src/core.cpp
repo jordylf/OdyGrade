@@ -99,9 +99,15 @@ Color normalize_input(Color rgb,const InputProfile& profile) {
         const auto& m=profile.matrix;
         converted[row]=m[row*3]*linear[0]+m[row*3+1]*linear[1]+m[row*3+2]*linear[2];
     }
-    const auto peak=std::max({converted[0],converted[1],converted[2],0.0});
-    const auto scale=profile.scene&&peak>.8?(.8+.2*(1-std::exp(-(peak-.8)/.2)))/peak:1;
-    for(int k=0;k<3;++k)result[k]=clamp(encode(converted[k]*scale));
+    // Mirrors color-management.js sceneToDisplay: peak compression, then fade to white (peak 1x..4x).
+    if(profile.scene) {
+        for(auto& v:converted)v=std::max(0.0,v);
+        const auto peak=std::max({converted[0],converted[1],converted[2]});
+        const auto d=peak<=.8?peak:.8+.2*(1-std::exp(-(peak-.8)/.2)),s=peak>.8?d/peak:1.0;
+        const auto w=smooth(0,2,std::log2(std::max(peak,1e-6)));
+        for(auto& v:converted)v=d+(v*s-d)*(1-w);
+    }
+    for(int k=0;k<3;++k)result[k]=clamp(encode(converted[k]));
     return result;
 }
 void check_range(double x,double lo,double hi,const char* field) {

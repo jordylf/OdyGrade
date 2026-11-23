@@ -136,7 +136,7 @@ PF_Err render(PF_InData* in_data,PF_ParamDef* p[],PF_LayerDef* output){
  if(input.width!=output->width||input.height!=output->height)throw std::invalid_argument("Full-frame matching input/output required");
  if(in_data->field!=PF_Field_FRAME)throw std::invalid_argument("Progressive frames required; deinterlace before OdyGrade");
  if(input.width<1||input.height<1)return PF_Err_NONE;
- if(static_cast<std::uint64_t>(input.width)*input.height>16000000)throw std::invalid_argument("OdyGrade preview supports up to 16 megapixels");
+ if(static_cast<std::uint64_t>(input.width)*input.height>40000000)throw std::invalid_argument("OdyGrade supports frames up to 40 megapixels");
  // MFR: frames rendering at once share the cores instead of each spawning one thread per core.
  static std::atomic<int> active{0};
  struct Active{Active(){odygrade::set_thread_limit(static_cast<int>(std::max(1u,std::thread::hardware_concurrency()/static_cast<unsigned>(++active))));}~Active(){--active;}} busy;
