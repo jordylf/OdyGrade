@@ -341,8 +341,11 @@ $("exportPng").addEventListener("click",async function(){
  }catch(e){fail(e);}finally{state.busy=false;buttons();requestRender().catch(fail);}
 });
 $("capture").addEventListener("click",async function(){
- try{await whileBusy(async function(){var x=await B.capture();var url="file:///"+x.path.replace(/\\/g,"/").split("/").map(function(part,i){return i===0?part:encodeURIComponent(part);}).join("/");
-  await setImage("source",url,"Adobe captured frame");});}catch(e){fail(e);}
+ try{var x=await whileBusy(async function(){var x=await B.capture();var url="file:///"+x.path.replace(/\\/g,"/").split("/").map(function(part,i){return i===0?part:encodeURIComponent(part);}).join("/");
+  await setImage("source",url,"Adobe captured frame");return x;});
+  // Camera metadata (Sony XML) names the profile: select it through the normal profile handler.
+  if(x.profile&&CM.PROFILES[x.profile]&&x.profile!==state.settings.inputProfile){$("sourceProfile").value=x.profile;$("sourceProfile").dispatchEvent(new Event('change'));}
+ }catch(e){fail(e);}
 });
 $("demo").addEventListener("click",async function(){
  try{await whileBusy(async function(){

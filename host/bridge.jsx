@@ -26,8 +26,38 @@ var OdyHost = {
         if(!f.exists){var alternate=new File(base);if(alternate.exists)f=alternate;}
       }
       if(!f.exists)throw Error("Frame capture produced no file. Export a PNG manually and import it.");
-      return this.reply({ok:true,path:f.fsName});
+      var profile="";try{profile=this.profileFromXml(this.mediaXml(this.mediaUnderPlayhead()));}catch(ignore){}
+      return this.reply({ok:true,path:f.fsName,profile:profile});
     }catch(e){return this.reply({ok:false,error:e.toString()});}
+  },
+  /* Camera metadata -> OdyGrade profile key, "" when unknown. Sony writes NonRealTimeMeta XML
+     (CaptureGammaEquation / CaptureColorPrimaries) into its MP4s. Only exact matches. */
+  profileFromXml:function(xml){
+    var g=/CaptureGammaEquation"\s+value="([^"]+)"/.exec(xml||""),p=/CaptureColorPrimaries"\s+value="([^"]+)"/.exec(xml||"");
+    if(!g)return "";g=g[1].toLowerCase();p=p?p[1].toLowerCase():"";
+    if(g.indexOf("s-log3")===0&&p==="s-gamut3-cine")return "sony-slog3-sgamut3cine";
+    if(g==="rec2100-hlg"&&(p==="rec2020"||p==="rec2100"))return "hlg-rec2020";
+    return "";
+  },
+  /* The XML sits near the end of the file (sometimes the start): read 64 KB of each. */
+  mediaXml:function(path){
+    if(!path)return "";var f=new File(path),s="";f.encoding="BINARY";if(!f.open("r"))return "";
+    try{s=f.read(65536);if(f.length>65536){f.seek(Math.max(65536,f.length-65536));s+=f.read(65536);}}finally{f.close();}
+    return s;
+  },
+  /* Source file of the selected AE layer, else the topmost footage layer/clip under the playhead. */
+  mediaUnderPlayhead:function(){
+    var i,L,t;
+    if(typeof CompItem!=="undefined"){
+      var comp=app.project.activeItem,sel=comp.selectedLayers;
+      for(i=0;i<sel.length;i++)if(sel[i].source&&sel[i].source.file)return sel[i].source.file.fsName;
+      for(i=1;i<=comp.numLayers;i++){L=comp.layer(i);if(L.enabled&&L.source&&L.source.file&&L.activeAtTime(comp.time))return L.source.file.fsName;}
+      return "";
+    }
+    var seq=app.project.activeSequence,tracks=seq.videoTracks,j,c;t=seq.getPlayerPosition().seconds;
+    for(i=tracks.numTracks-1;i>=0;i--)for(j=0;j<tracks[i].clips.numItems;j++){c=tracks[i].clips[j];
+      if(c.start.seconds<=t&&t<c.end.seconds&&c.projectItem)return c.projectItem.getMediaPath();}
+    return "";
   },
   /* Adds (or reuses) the native OdyGrade effect on selected AE layers / Premiere video
      clips and sets its controls. params: [[displayName,value,isPopup0Based],...].
