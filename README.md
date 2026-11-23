@@ -68,6 +68,12 @@ Our own iPhone footage, straight from the timeline, not a marketing render.
 
 <p align="center"><img src="docs/images/cover.jpg" width="100%" alt="Two frames before and after OdyGrade."></p>
 
+### From S-Log3 to the look.
+
+A Sony A7 IV clip in S-Log3 / S-Gamut3.Cine, straight from the card. The camera profile turns the flat LOG image into normal colour, the reference match carries over the palette of a film still, and the film tools finish it.
+
+<p align="center"><img src="docs/images/slog3.jpg" width="100%" alt="Four panels of the same Sony S-Log3 frame: flat from the camera, after the S-Log3 profile, after the reference match, and with the Portrait stock, grain and halation. Below, the colour palette of the reference."><br><sub><b>Real demo.</b> Sony S-Log3 → S-Log3 profile → reference match → + film. The reference is shown as its palette only.</sub></p>
+
 ---
 
 <p align="center"><sub>THE PANEL</sub></p>
@@ -150,7 +156,7 @@ The panel is not signed as a ZXP yet, and Adobe only loads unsigned panels in de
 
 <details><summary><b>What are the limits?</b></summary>
 
-Windows only, and not yet tested on a clean machine. Output is SDR: values above 1.0 are clipped in AE 32 bpc. LOG profiles follow the published curves but are not yet tested with real camera footage. Matching is statistical, not a trained model. See [Status](docs/STATUS.md).
+Windows only, and not yet tested on a clean machine. Output is SDR: values above 1.0 are clipped in AE 32 bpc. LOG profiles follow the published curves; Sony S-Log3 is checked with real A7 IV footage, the others only against the curves. Matching is statistical, not a trained model. See [Status](docs/STATUS.md).
 </details>
 
 ---
@@ -160,7 +166,7 @@ Windows only, and not yet tested on a clean machine. Output is SDR: values above
 Node 18+, CMake 3.20+, Visual Studio 2022 Build Tools and the After Effects SDK:
 
 ```powershell
-npm test                                       # JS engine, profiles, panel, version (68 tests)
+npm test                                       # JS engine, profiles, panel, version (70 tests)
 node tools/native.cjs build                    # portable C++ core + offline renderer
 node tools/adobe.cjs --sdk <AfterEffectsSDK>   # OdyGrade.aex + adapter tests
 npm run release                                # ../OdyGrade-<version>-win64.zip

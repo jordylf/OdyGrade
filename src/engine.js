@@ -188,6 +188,15 @@
     }
     return mix(x,b[b.length-1]+x-a[a.length-1],0.85);
   }
+  // Reference knots with each segment's expansion capped at MAX_TONE_SLOPE x the source
+  // segment: a crowded source range (clipped sky, the p95..max outlier segment) must not be
+  // stretched into visible blotches. Compression is left alone. Mirrored in core.cpp.
+  var MAX_TONE_SLOPE=2;
+  function boundedKnots(a,b){
+    var out=[b[0]];
+    for(var i=1;i<b.length;i++)out.push(out[i-1]+Math.min(b[i]-b[i-1],MAX_TONE_SLOPE*(a[i]-a[i-1])));
+    return out;
+  }
   function zoneColor(x,z,mid){
     var t;
     if(x<mid){t=smooth(0,Math.max(0.01,mid),x);return {a:mix(z[0].a,z[1].a,t),b:mix(z[0].b,z[1].b,t),sa:mix(z[0].sa,z[1].sa,t),sb:mix(z[0].sb,z[1].sb,t)};}
@@ -219,6 +228,7 @@
     if(model && ["exposure","temperature","tint"].some(function(k){return Math.abs(model.correction[k]-o[k])>0.000001;}))
       throw Error("Correction changed: refit the match before exporting");
     var look=LOOKS[o.look],film=STOCKS[o.stock],normalize=CM.create(o.inputProfile);
+    var refKnots=model?boundedKnots(model.source.quantiles,model.reference.quantiles):null;
     return function(rgb){
       var base=toLab(correct(normalize(rgb),o)),c=base.slice();
       if(model && o.strength>0){
@@ -226,7 +236,7 @@
         var sc=zoneColor(c[0],source.zones,source.quantiles[4]),rc=zoneColor(c[0],ref.zones,source.quantiles[4]);
         var ar=clamp((rc.sa+0.015)/(sc.sa+0.015),0.5,2),br=clamp((rc.sb+0.015)/(sc.sb+0.015),0.5,2);
         var protect=1-o.preserveSkin*skinWeight(base)*0.85;
-        c[0]=mix(c[0],toneMap(c[0],source.quantiles,ref.quantiles),o.strength);
+        c[0]=mix(c[0],toneMap(c[0],source.quantiles,refKnots),o.strength);
         c[1]=mix(c[1],clamp((c[1]-sc.a)*ar+rc.a,-0.3,0.3),o.strength*protect);
         c[2]=mix(c[2],clamp((c[2]-sc.b)*br+rc.b,-0.3,0.3),o.strength*protect);
         c=chromaTail(c,base,source.chroma,ref.chroma,o.strength*protect);

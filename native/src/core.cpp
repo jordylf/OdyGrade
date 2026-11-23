@@ -142,13 +142,21 @@ Zone zone_color(double x,const Distribution& d,double mid) {
     const auto& a=d.zones[low?0:1];const auto& b=d.zones[low?1:2];
     return {mix(a.a,b.a,t),mix(a.b,b.b,t),mix(a.sa,b.sa,t),mix(a.sb,b.sb,t)};
 }
-double tone_map(double x,const Distribution& a,const Distribution& b) {
-    if(x<=a.quantiles[0])return mix(x,b.quantiles[0],.85);
+using Knots=std::array<double,9>;
+// Mirrors engine.js boundedKnots: reference knots with each segment's expansion capped at
+// 2x the source segment, so crowded highlights (clipped sky) are not stretched into blotches.
+Knots bounded_knots(const Distribution& a,const Distribution& b) {
+    Knots out{};out[0]=b.quantiles[0];
+    for(std::size_t i=1;i<out.size();++i)out[i]=out[i-1]+std::min(b.quantiles[i]-b.quantiles[i-1],2*(a.quantiles[i]-a.quantiles[i-1]));
+    return out;
+}
+double tone_map(double x,const Distribution& a,const Knots& b) {
+    if(x<=a.quantiles[0])return mix(x,b[0],.85);
     for(std::size_t i=1;i<a.quantiles.size();++i)if(x<=a.quantiles[i]) {
         const auto t=clamp((x-a.quantiles[i-1])/std::max(.00001,a.quantiles[i]-a.quantiles[i-1]));
-        return mix(x,mix(b.quantiles[i-1],b.quantiles[i],t),.85);
+        return mix(x,mix(b[i-1],b[i],t),.85);
     }
-    return mix(x,b.quantiles.back()+x-a.quantiles.back(),.85);
+    return mix(x,b.back()+x-a.quantiles.back(),.85);
 }
 double skin_weight(Color c) {
     const auto hue=std::atan2(c[2],c[1]),chroma=std::hypot(c[1],c[2]);
@@ -156,9 +164,10 @@ double skin_weight(Color c) {
         std::exp(-std::pow((hue-.8)/.45,2))*smooth(.015,.06,chroma);
 }
 // Lookups and per-frame constants resolved once per render, not per pixel.
-struct Prepared { const Look& look; const InputProfile& profile; const Stock& stock; Gains gains; };
+struct Prepared { const Look& look; const InputProfile& profile; const Stock& stock; Gains gains; Knots knots; };
 Prepared prepare(const Recipe& r) {
-    const auto& s=r.settings;return {look_for(s.look),profile_for(s.input_profile),stock_for(s.stock),gains_for(s)};
+    const auto& s=r.settings;return {look_for(s.look),profile_for(s.input_profile),stock_for(s.stock),gains_for(s),
+        bounded_knots(r.model.source,r.model.reference)};
 }
 Color apply_color(Color rgb,const Recipe& r,const Prepared& p) {
     const auto& s=r.settings;const auto& look=p.look;const auto base=to_lab(correct(normalize_input(rgb,p.profile),p.gains));auto c=base;
@@ -169,7 +178,7 @@ Color apply_color(Color rgb,const Recipe& r,const Prepared& p) {
         const auto rc=zone_color(c[0],ref,source.quantiles[4]);
         const auto ar=clamp((rc.sa+.015)/(sc.sa+.015),.5,2),br=clamp((rc.sb+.015)/(sc.sb+.015),.5,2);
         const auto protect=1-s.preserve_skin*skin_weight(base)*.85;
-        c[0]=mix(c[0],tone_map(c[0],source,ref),s.strength);
+        c[0]=mix(c[0],tone_map(c[0],source,p.knots),s.strength);
         c[1]=mix(c[1],clamp((c[1]-sc.a)*ar+rc.a,-.3,.3),s.strength*protect);
         c[2]=mix(c[2],clamp((c[2]-sc.b)*br+rc.b,-.3,.3),s.strength*protect);
         c=chroma_tail(c,base,source,ref,s.strength*protect);

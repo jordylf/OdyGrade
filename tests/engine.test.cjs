@@ -75,3 +75,12 @@ test('prototype look IDs, negative spreads and overflow-sized distributions are 
  const large=JSON.parse(E.serialize(E.fit(ramp,warm),{}));large.model.source.quantiles=Array(9).fill(1e300);
  assert.throws(()=>E.parse(JSON.stringify(large)),/quantiles/);
 });
+// Real S-Log3 sky: source p95..max crowded into 0.944..1 while the reference spreads it over
+// 0.709..0.983, a 4.9x luminance slope that turned faint sky texture into blotches.
+function steepModel(){const m=E.fit(ramp,warm);
+  m.source.quantiles=[.16,.32,.42,.52,.67,.80,.91,.944,1];m.reference.quantiles=[.08,.22,.25,.30,.39,.51,.61,.709,.983];return m;}
+test('tone mapping slope is bounded in crowded highlights',()=>{
+  const fn=E.createTransform(steepModel(),{shoulder:0,preserveSkin:0}),L=x=>E.toLab(fn(E.fromLab([x,0,0])))[0];
+  const slope=(L(.975)-L(.95))/.025;assert.ok(slope<=1.86,'highlight slope '+slope);
+  assert.ok(L(.5)<L(.9)&&L(.9)<L(.95)&&L(.95)<L(.999),'monotone');
+});

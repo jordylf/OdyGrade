@@ -4,7 +4,17 @@ Updated: 2026-11-23 (Asia/Jakarta)
 
 
 
-## Latest checkpoint — 0.5.1 fast trims (Claude, 2026-11-23)
+## Latest checkpoint — real S-Log3 footage, highlight tone slope (Claude, 2026-11-23)
+- Real Sony A7 IV S-Log3/S-Gamut3.Cine clip (runs/slog3-20261123): fit-shot + still-native.
+  Reference match showed blotchy skies: crowded source highlights (p95..max 0.944..1.0) were
+  stretched to the reference's spread (slope ~4.9). Fix: tone-map knots expand each segment at
+  most 2x (MAX_TONE_SLOPE / bounded_knots, JS == C++); compression and midtones unchanged.
+- Tests: engine "tone mapping slope is bounded" (failed 4.31 before) + native parity; npm test 70/70.
+- Plugin binary not rebuilt/released: installed 0.5.1 .aex still has the old slope. Needs
+  adobe.cjs build + release (0.5.2) before hosts get the fix.
+- README showcase docs/images/slog3.jpg (16:9 crops, reference shown as palette only).
+
+## Previous checkpoint — 0.5.1 fast trims (Claude, 2026-11-23)
 
 - Recipe::trim (core.hpp) = exposure/temperature/tint applied to the graded colour in the same
   sweep, before film; equals the old second neutral pass (core test max diff <1e-5). Adapter

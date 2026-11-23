@@ -138,3 +138,10 @@ test('native still CLI processes real 16-bit PNG and preserves one-code-value di
   assert.throws(()=>require('../tools/native-still.cjs').renderStill(recipe(),input,path.join(dir,'bad.jpg')),/png/);
  }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
+test('native bounded highlight tone slope matches JS',{skip:!available},()=>{
+ const source=image(),settings={look:'neutral',shoulder:0},model=E.fit(source,E.render(source,null,{look:'amber'}));
+ model.source.quantiles=[.16,.32,.42,.52,.67,.80,.91,.944,1];model.reference.quantiles=[.08,.22,.25,.30,.39,.51,.61,.709,.983];
+ const values=new Float32Array([.93,.95,.97,1,.96,.96,.96,1,.99,.98,.995,1,.6,.62,.58,1]);
+ const actual=success(render(recipe(model,settings),Buffer.from(values.buffer),4,1,'rgba32f','rgba32f')),fn=E.createTransform(model,settings);
+ for(let i=0;i<4;i++)for(let k=0;k<3;k++){const e=fn(Array.from(values.slice(i*4,i*4+3)))[k],a=actual.readFloatLE((i*4+k)*4);assert.ok(Math.abs(a-e)<2e-6,a+' != '+e);}
+});
