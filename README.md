@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/images/hero.jpg" width="100%" alt="OdyGrade: reference colour grading for After Effects and Premiere Pro. A 3D colour-wheel logo beside a before and after split of a real frame."></p>
+<p align="center"><img src="docs/images/hero.jpg" width="100%" alt="OdyGrade: reference colour grading for After Effects and Premiere Pro. A woman in a yellow kimono in a dark green garden, graded by OdyGrade in After Effects from Sony S-Log3, with the flat S-Log3 original in a small inset and a 3D colour-wheel logo."></p>
 
 <p align="center"><a href="https://github.com/jordylf/OdyGrade/releases/latest"><strong>Download for Windows ↗</strong></a> &nbsp; · &nbsp; <a href="#how-it-works">How it works</a> &nbsp; · &nbsp; <a href="#film-texture-in-one-panel">Film texture</a> &nbsp; · &nbsp; <a href="#from-s-log3-to-the-look">S-Log3 demo</a> &nbsp; · &nbsp; <a href="#install-in-three-steps">Install</a> &nbsp; · &nbsp; <a href="#questions">FAQ</a></p>
 
@@ -72,7 +72,7 @@ Our own Sony S-Log3 and iPhone footage, straight from the timeline, not a market
 
 A Sony 5K open-gate clip in S-Log3 / S-Gamut3.Cine, straight from the card, graded in After Effects from one film still. OdyGrade reads the camera profile from the clip's metadata, turns the flat LOG image into normal colour and carries over the deep greens and warm skin of the reference.
 
-<p align="center"><img src="docs/images/slog3.jpg" width="100%" alt="Two shots of a woman in a yellow kimono in a garden. Left, the flat grey Sony S-Log3 frames from the camera; right, the same frames graded by OdyGrade in After Effects with deep green foliage and warm skin. Below, the Shutter Island reference still and a palette of eight colours measured from it."><br><sub><b>Real demo, rendered in After Effects.</b> Sony S-Log3 → one click, matched to a still from <i>Shutter Island</i> (2010)</sub></p>
+<p align="center"><img src="docs/images/slog3.jpg" width="100%" alt="Two shots of a woman in a yellow kimono in a garden. Left, the flat grey Sony S-Log3 frames from the camera; right, the same frames graded by OdyGrade in After Effects with deep green foliage and warm skin; the first shot is a before and after wipe through her face. Beside it, the Shutter Island reference still and a palette of eight colours measured from it."><br><sub><b>Real demo, rendered in After Effects.</b> Sony S-Log3 → one click, matched to a still from <i>Shutter Island</i> (2010)</sub></p>
 
 ---
 
