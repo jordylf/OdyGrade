@@ -169,6 +169,18 @@ double skin_weight(Color c) {
     return smooth(.2,.45,c[0])*(1-smooth(.85,.98,c[0]))*
         std::exp(-std::pow((hue-.8)/.45,2))*smooth(.015,.06,chroma);
 }
+// Mirrors engine.js applyHue: per-hue-band rotation and chroma gain toward the reference.
+constexpr double kHues[6]={.3,1.347,2.394,-2.842,-1.795,-.747};
+Color apply_hue(Color c,const std::array<std::array<double,2>,6>& bands,double amount) {
+    constexpr double pi=3.14159265358979323846;
+    const auto ch=std::hypot(c[1],c[2]),g=smooth(.02,.06,ch)*amount;
+    if(g<=0)return c;
+    const auto h=std::atan2(c[2],c[1]);double m[6],total=0;
+    for(int k=0;k<6;++k){auto d=h-kHues[k];d-=2*pi*std::round(d/(2*pi));d/=.55;m[k]=std::exp(-d*d);total+=m[k];}
+    double shift=0,gain=0;for(int k=0;k<6;++k){shift+=m[k]/total*bands[k][0];gain+=m[k]/total*bands[k][1];}
+    const auto r=shift*g,k2=mix(1,gain,g),cs=std::cos(r),sn=std::sin(r);
+    return {c[0],clamp((c[1]*cs-c[2]*sn)*k2,-.3,.3),clamp((c[1]*sn+c[2]*cs)*k2,-.3,.3)};
+}
 // Lookups and per-frame constants resolved once per render, not per pixel.
 struct Prepared { const Look& look; const InputProfile& profile; const Stock& stock; Gains gains; Knots knots; };
 Prepared prepare(const Recipe& r) {
@@ -188,6 +200,7 @@ Color apply_color(Color rgb,const Recipe& r,const Prepared& p) {
         c[1]=mix(c[1],clamp((c[1]-sc.a)*ar+rc.a,-.3,.3),s.strength*protect);
         c[2]=mix(c[2],clamp((c[2]-sc.b)*br+rc.b,-.3,.3),s.strength*protect);
         c=chroma_tail(c,base,source,ref,s.strength*protect);
+        if(r.model.has_hue)c=apply_hue(c,r.model.hue,s.strength*protect);
         // Mirrors engine.js: skin pixels take the reference skin palette.
         if(r.model.has_skin) {
             const auto w=skin_weight(base);const auto& ss=r.model.skin_source;const auto& rs=r.model.skin_reference;
@@ -373,6 +386,8 @@ void validate(const Recipe& r) {
     (void)stock_for(s.stock);check_range(s.stock_amount,0,1,"Invalid stock amount");
     if(r.model.enabled) {
         check_correction(r.model.correction);check_distribution(r.model.source);check_distribution(r.model.reference);
+        if(r.model.has_hue)for(const auto& h:r.model.hue)
+            if(!std::isfinite(h[0])||!std::isfinite(h[1])||std::abs(h[0])>.35+1e-9||h[1]<.7-1e-9||h[1]>1.4+1e-9)throw std::invalid_argument("Invalid hue match");
         if(r.model.has_skin)for(const auto& z:{r.model.skin_source,r.model.skin_reference})
             if(!std::isfinite(z.a)||!std::isfinite(z.b)||!std::isfinite(z.sa)||!std::isfinite(z.sb)||
                std::abs(z.a)>4||std::abs(z.b)>4||z.sa<0||z.sb<0||z.sa>4||z.sb>4)throw std::invalid_argument("Invalid skin palette");

@@ -19,8 +19,8 @@ test('separate skin fit stores both skin palettes and round-trips through the re
  assert.equal(plain.skin,undefined);assert.ok(split.skin&&split.skin.source&&split.skin.reference);
  assert.equal(split.source.skin,undefined,'skin stats are not left on the distribution');
  const r=E.parse(E.serialize(split,{},{}));assert.deepEqual(r.model.skin,split.skin);
- assert.match(N.compile(r),/^ODYGRADE_NATIVE 6\n[\s\S]*\nskin( \S+){8}\n/);
- assert.match(N.compile(E.parse(E.serialize(plain,{},{}))),/^ODYGRADE_NATIVE 5\n/);
+ assert.match(N.compile(r),/^ODYGRADE_NATIVE 7\n[\s\S]*\nhue( \S+){12}\nskin 1( \S+){8}\n/);
+ assert.match(N.compile(E.parse(E.serialize(plain,{},{}))),/^ODYGRADE_NATIVE 7\n[\s\S]*\nskin 0\n/);
 });
 test('skin follows the reference skin; background pixels are unchanged by the split',()=>{
  const plain=E.fit(source,reference,{}),split=E.fit(source,reference,{separateSkin:true});
@@ -48,4 +48,18 @@ test('native skin split matches JS',{skip:!fs.existsSync(exe)},()=>{
   for(let i=0;i<expected.length;i++)max=Math.max(max,Math.abs(out.stdout[i]-expected[i]));
   assert.ok(max<=1,'max diff '+max);
  }finally{fs.rmSync(dir,{recursive:true,force:true});}
+});
+// Per-hue match: each hue band moves toward the reference's version of that hue.
+test('hue bands pull greens toward the reference greens and leave missing bands alone',()=>{
+ const src=image([150,190,60],[120,120,120]),ref=image([40,170,140],[125,125,125]);  // yellow-green vs teal-green
+ const m=E.fit(src,ref,{}),green=m.hue[3];
+ assert.ok(Math.abs(green[0])>.05,'green band rotates: '+green);
+ assert.deepEqual(m.hue[5],[0,1],'blue band absent in both: untouched');
+ const h=rgb=>{const l=E.toLab(rgb);return Math.atan2(l[2],l[1]);},px=[150/255,190/255,60/255];
+ const withHue=h(E.createTransform(m,{})(px)),without=h(E.createTransform(Object.assign({},m,{hue:undefined}),{})(px)),target=h([40/255,170/255,140/255]);
+ assert.ok(Math.abs(withHue-target)<Math.abs(without-target),[withHue,without,target].join(' '));
+});
+test('models without hue bands (older grades) render exactly as before',()=>{
+ const m=E.fit(source,reference,{});delete m.hue;
+ const r=E.parse(E.serialize(m,{},{}));assert.equal(r.model.hue,undefined);assert.match(N.compile(r),/^ODYGRADE_NATIVE 5\n/);
 });

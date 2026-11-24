@@ -133,7 +133,7 @@
     // still left the most saturated source colours vivid. See createTransform.
     var ch=samples.map(function(c){return Math.hypot(c[1],c[2]);}).sort(function(a,b){return a-b;});
     var cq=[0.9,0.99].map(function(p){return ch[Math.min(ch.length-1,Math.floor(p*ch.length))];});
-    return {quantiles:qs,zones:zones.map(function(z){return finish(z.n>=8?z:all);}),chroma:cq,count:samples.length,skin:skinStats(samples)};
+    return {quantiles:qs,zones:zones.map(function(z){return finish(z.n>=8?z:all);}),chroma:cq,count:samples.length,skin:skinStats(samples),samples:samples};
   }
   // Skin palette (OKLab a/b mean and spread), weighted by the same hue heuristic as skin
   // protection. Null when the image holds too little skin to measure (< MIN_SKIN weight).
@@ -146,13 +146,17 @@
   }
   function distribution(image,o){return summarize(samplesFor(image,o,60000));}
   function fitDistributions(a,b,o,separateSkin){
-    var skinA=a.skin,skinB=b.skin,warnings=[];a=Object.assign({},a);b=Object.assign({},b);delete a.skin;delete b.skin;
+    var skinA=a.skin,skinB=b.skin,samplesA=a.samples,samplesB=b.samples,warnings=[];
+    a=Object.assign({},a);b=Object.assign({},b);delete a.skin;delete b.skin;delete a.samples;delete b.samples;
     if(separateSkin&&!skinA)warnings.push("No skin tones found in your frame: skin and background were matched together.");
     else if(separateSkin&&!skinB)warnings.push("No skin tones found in the reference: skin and background were matched together.");
     var model={version:VERSION,inputSpace:"srgb",inputProfile:o.inputProfile,source:a,reference:b,
       correction:{exposure:o.exposure,temperature:o.temperature,tint:o.tint},
       warnings:(a.quantiles[7]-a.quantiles[1]<0.12?["Source has little tonal variation; matching may be unreliable."]:[])
         .concat(b.quantiles[7]-b.quantiles[1]<0.12?["Reference has little tonal variation; matching may be unreliable."]:[]).concat(warnings)};
+    // Per-hue residual: measured after the frame-wide match, so it only corrects what that missed.
+    var stage=createTransform(model,Object.assign({},o,{strength:1,preserveSkin:0}),true);
+    model.hue=hueMatch(samplesA.map(function(c){return stage(c);}),samplesB);
     if(separateSkin&&skinA&&skinB)model.skin={source:skinA,reference:skinB};
     return model;
   }
@@ -192,6 +196,8 @@
       if(d.chroma!==undefined&&(!Array.isArray(d.chroma)||d.chroma.length!==2||!d.chroma.every(function(v){return Number.isFinite(v)&&v>=0&&v<=1;})||d.chroma[1]<d.chroma[0]))throw Error("Invalid chroma tail");
     });
     if(!model.source.chroma!==!model.reference.chroma)throw Error("Chroma tail must be on both distributions");
+    if(model.hue!==undefined&&(!Array.isArray(model.hue)||model.hue.length!==HUES.length||!model.hue.every(function(h){
+      return Array.isArray(h)&&h.length===2&&Number.isFinite(h[0])&&Number.isFinite(h[1])&&Math.abs(h[0])<=MAX_HUE_SHIFT+1e-9&&h[1]>=0.7-1e-9&&h[1]<=1.4+1e-9;})))throw Error("Invalid hue match");
     if(model.skin!==undefined&&(!model.skin||[model.skin.source,model.skin.reference].some(function(z){
       return !z||["a","b","sa","sb"].some(function(k){return !Number.isFinite(z[k])||Math.abs(z[k])>4;})||z.sa<0||z.sb<0;})))throw Error("Invalid skin palette");
     return model;
@@ -226,6 +232,36 @@
     return smooth(0.2,0.45,lab[0])*(1-smooth(0.85,0.98,lab[0]))*
       Math.exp(-Math.pow((hue-0.8)/0.45,2))*smooth(0.015,0.06,chroma);
   }
+  // Hue bands (OKLab hue, rad): red, orange/skin, yellow, green, cyan, blue/purple. Each band maps
+  // the frame's mean hue and chroma to the reference's, within MAX_HUE_SHIFT and a 0.7..1.4 gain.
+  // Mirrored in core.cpp.
+  var HUES=[0.3,1.347,2.394,-2.842,-1.795,-0.747],MAX_HUE_SHIFT=0.35,MIN_HUE_SHARE=0.02;
+  function angle(d){return d-2*Math.PI*Math.round(d/(2*Math.PI));}
+  function hueMembership(h){
+    var m=HUES.map(function(k){var d=angle(h-k)/0.55;return Math.exp(-d*d);}),t=m.reduce(function(x,y){return x+y;},0);
+    return m.map(function(v){return v/t;});
+  }
+  function hueStats(samples){
+    var st=HUES.map(function(){return {w:0,x:0,y:0,c:0};}),total=0;
+    samples.forEach(function(c){
+      var ch=Math.hypot(c[1],c[2]),g=smooth(0.02,0.06,ch);total++;if(g<=0)return;
+      hueMembership(Math.atan2(c[2],c[1])).forEach(function(m,k){var w=m*g;st[k].w+=w;st[k].x+=w*c[1]/ch;st[k].y+=w*c[2]/ch;st[k].c+=w*ch;});
+    });
+    return st.map(function(s){return s.w/Math.max(1,total)<MIN_HUE_SHARE?null:{h:Math.atan2(s.y,s.x),c:s.c/s.w};});
+  }
+  function hueMatch(source,reference){
+    var a=hueStats(source),b=hueStats(reference);
+    return a.map(function(s,k){var r=b[k];if(!s||!r)return [0,1];
+      return [clamp(angle(r.h-s.h),-MAX_HUE_SHIFT,MAX_HUE_SHIFT),clamp(r.c/s.c,0.7,1.4)];});
+  }
+  function applyHue(c,bands,amount){
+    var ch=Math.hypot(c[1],c[2]),g=smooth(0.02,0.06,ch)*amount;
+    if(g<=0)return c;
+    var m=hueMembership(Math.atan2(c[2],c[1])),shift=0,gain=0;
+    for(var k=0;k<bands.length;k++){shift+=m[k]*bands[k][0];gain+=m[k]*bands[k][1];}
+    var r=shift*g,k2=mix(1,gain,g),cs=Math.cos(r),sn=Math.sin(r);
+    return [c[0],clamp((c[1]*cs-c[2]*sn)*k2,-0.3,0.3),clamp((c[1]*sn+c[2]*cs)*k2,-0.3,0.3)];
+  }
   // Compress-only chroma tail match: pixels whose ORIGINAL chroma lies above the source
   // p90 are pulled toward the reference's quantile-equivalent chroma (p90->p90,
   // p99->p99, extrapolated), blended in smoothly from p90 to p99. Models without
@@ -238,14 +274,22 @@
     if(c1<=target)return c;
     var k=mix(1,target/c1,w);return [c[0],c[1]*k,c[2]*k];
   }
-  function createTransform(model,options){
+  function createTransform(model,options,matchStage){
     var o=settings(options);
-    if(model)validateModel(model);
+    if(model&&!matchStage)validateModel(model);
     if(model&&(model.version===1?'srgb':model.inputProfile)!==o.inputProfile)throw Error("Input profile changed: refit the match");
     if(model && ["exposure","temperature","tint"].some(function(k){return Math.abs(model.correction[k]-o[k])>0.000001;}))
       throw Error("Correction changed: refit the match before exporting");
     var look=LOOKS[o.look],film=STOCKS[o.stock],normalize=CM.create(o.inputProfile);
     var refKnots=model?boundedKnots(model.source.quantiles,model.reference.quantiles):null;
+    if(matchStage)return function(base){
+      var c=base.slice(),source=model.source,ref=model.reference;
+      var sc=zoneColor(c[0],source.zones,source.quantiles[4]),rc=zoneColor(c[0],ref.zones,source.quantiles[4]);
+      var ar=clamp((rc.sa+0.015)/(sc.sa+0.015),0.5,2),br=clamp((rc.sb+0.015)/(sc.sb+0.015),0.5,2);
+      c[0]=toneMap(c[0],source.quantiles,refKnots);
+      c[1]=clamp((c[1]-sc.a)*ar+rc.a,-0.3,0.3);c[2]=clamp((c[2]-sc.b)*br+rc.b,-0.3,0.3);
+      return chromaTail(c,base,source.chroma,ref.chroma,1);
+    };
     return function(rgb){
       var base=toLab(correct(normalize(rgb),o)),c=base.slice();
       if(model && o.strength>0){
@@ -257,6 +301,7 @@
         c[1]=mix(c[1],clamp((c[1]-sc.a)*ar+rc.a,-0.3,0.3),o.strength*protect);
         c[2]=mix(c[2],clamp((c[2]-sc.b)*br+rc.b,-0.3,0.3),o.strength*protect);
         c=chromaTail(c,base,source.chroma,ref.chroma,o.strength*protect);
+        if(model.hue)c=applyHue(c,model.hue,o.strength*protect);
         if(model.skin){
           // Skin pixels take the reference skin palette instead of the frame-wide match.
           var w=skinWeight(base),ss=model.skin.source,rs=model.skin.reference;

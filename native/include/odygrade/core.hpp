@@ -19,6 +19,8 @@ struct Model {
     Distribution source{}, reference{};
     Correction correction{};
     std::string input_profile{"srgb"};
+    bool has_hue{};             // snapshot v7: per-hue-band [shift rad, chroma gain]
+    std::array<std::array<double,2>,6> hue{};
     bool has_skin{};            // snapshot v6: separate skin palette match
     Zone skin_source{}, skin_reference{};
 };
