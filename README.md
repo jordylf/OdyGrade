@@ -21,7 +21,7 @@ OdyGrade is a colour grading effect that lives on your timeline in After Effects
 1. **Pick your frame.** Capture it from the timeline or drop in one or more stills from the shot.
 2. **Pick the reference.** One screenshot of the look you want: a film, an ad, a photo you shot.
 3. **Set the camera profile.** sRGB, Rec.709, HLG or one of eight LOG curves, so your colours are read correctly.
-4. **Create grade, then apply.** One click matches tone, palette and chroma. **Apply to selected clips** puts it on every selected layer or clip in one undo step.
+4. **Create grade, then apply.** One click matches tone, palette and chroma, colour by colour: greens toward the reference's greens, blues toward its blues. **Apply to selected clips** puts it on every selected layer or clip in one undo step.
 
 The grade is frozen for the whole shot (no frame-to-frame pumping) and embedded in the effect, so it survives save, reopen and render. Every part stays editable.
 
@@ -90,6 +90,7 @@ Move match strength, exposure, temperature, tint, contrast, saturation and skin 
 - Docks beside your timeline in AE and Premiere
 - **10 original looks**: Neutral, Amber Hour, Nocturne, Evergreen, Rose Memory, Silver Screen, Coastal Blue, Earth & Ochre, Cyan District, Velvet Night
 - **Skin hue protection** keeps faces natural
+- **Match skin and background separately**: skin takes the reference's skin tones, the rest takes its palette
 - **Save .odyn / Open** to reuse a grade on other shots
 - **Export .cube** for a colour-only LUT
 
@@ -112,9 +113,9 @@ Move match strength, exposure, temperature, tint, contrast, saturation and skin 
 
 ## Install in three steps.
 
-> **New in 0.5.3:** clean, blotch-free skies on Sony S-Log3 and other LOG footage, 5K–8K frames up to 40 megapixels, **Capture Adobe frame** fixed in After Effects 2024, and the camera profile picked automatically from Sony clip metadata. Earlier versions are on the [releases page](https://github.com/jordylf/OdyGrade/releases).
+> **New in 0.5.4:** colours are matched hue by hue, so foliage, sky and skin each move toward their counterpart in the reference. New option **Match skin and background separately** gives skin the reference's skin tones. Grades made with earlier versions render unchanged. Earlier versions are on the [releases page](https://github.com/jordylf/OdyGrade/releases).
 
-1. **Download** `OdyGrade-0.5.3-win64.zip` from the [latest release](https://github.com/jordylf/OdyGrade/releases/latest) and extract it.
+1. **Download** `OdyGrade-0.5.4-win64.zip` from the [latest release](https://github.com/jordylf/OdyGrade/releases/latest) and extract it.
 2. **Close After Effects and Premiere Pro, then run `Install.cmd`.** It asks once for administrator rights to copy the effect and checks its SHA-256.
 3. **Open Window › Extensions › OdyGrade.** The effect is in Video Effects › OdyWorks › OdyGrade.
 
@@ -168,7 +169,7 @@ Windows only, and not yet tested on a clean machine. Output is SDR: values above
 Node 18+, CMake 3.20+, Visual Studio 2022 Build Tools and the After Effects SDK:
 
 ```powershell
-npm test                                       # JS engine, profiles, panel, version (75 tests)
+npm test                                       # JS engine, profiles, panel, version (82 tests)
 node tools/native.cjs build                    # portable C++ core + offline renderer
 node tools/adobe.cjs --sdk <AfterEffectsSDK>   # OdyGrade.aex + adapter tests
 npm run release                                # ../OdyGrade-<version>-win64.zip

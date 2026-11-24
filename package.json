@@ -1,6 +1,6 @@
 {
   "name": "odygrade",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "private": true,
   "description": "Reference-based color grading for Adobe 2024",
   "scripts": {

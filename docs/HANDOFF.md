@@ -4,6 +4,17 @@ Updated: 2026-11-24 (Asia/Jakarta)
 
 
 
+## 2026-11-24 — 0.5.4: per-hue match, separate skin match
+- Per-hue residual match (engine.js hueMatch/applyHue == core.cpp apply_hue): six OKLab hue bands,
+  measured on the source AFTER the frame-wide zone match + chroma tail (createTransform matchStage),
+  shift <= 0.35 rad, chroma gain 0.7..1.4, gate smooth(.02,.06,chroma), bands under 2% share skipped.
+- "Match skin and background separately" (panel checkbox, fit option separateSkin): skinWeight-weighted
+  a/b mean+spread in frame and reference; skin pixels blend to that match by skinWeight. Hue heuristic,
+  not face detection (yellow kimono shifts a little). No skin in either image -> warning, joint match.
+- Native snapshot: v5 (no new data), v6 (skin line), v7 (hue line + skin flag). New fits are v7, so a
+  0.5.3 effect cannot read them. Tests 82/82; harness PASS. Visual checks: work/adobe-host/runs/
+  skin-split-20261124, hue-bands-20261124.
+
 ## 2026-11-24 — 0.5.3: AE capture, Sony profile detection, LOG sky rolloff, 40 MP
 - AE 24 saveFrameToPng is async: bridge waits until the PNG exists and its size is stable.
 - Capture reads Sony NonRealTimeMeta XML (CaptureGammaEquation/CaptureColorPrimaries) of the
