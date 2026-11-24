@@ -133,18 +133,33 @@
     // still left the most saturated source colours vivid. See createTransform.
     var ch=samples.map(function(c){return Math.hypot(c[1],c[2]);}).sort(function(a,b){return a-b;});
     var cq=[0.9,0.99].map(function(p){return ch[Math.min(ch.length-1,Math.floor(p*ch.length))];});
-    return {quantiles:qs,zones:zones.map(function(z){return finish(z.n>=8?z:all);}),chroma:cq,count:samples.length};
+    return {quantiles:qs,zones:zones.map(function(z){return finish(z.n>=8?z:all);}),chroma:cq,count:samples.length,skin:skinStats(samples)};
+  }
+  // Skin palette (OKLab a/b mean and spread), weighted by the same hue heuristic as skin
+  // protection. Null when the image holds too little skin to measure (< MIN_SKIN weight).
+  var MIN_SKIN=150;
+  function skinStats(samples){
+    var n=0,a=0,b=0,aa=0,bb=0;
+    samples.forEach(function(c){var w=skinWeight(c);if(w<=0)return;n+=w;a+=w*c[1];b+=w*c[2];aa+=w*c[1]*c[1];bb+=w*c[2]*c[2];});
+    if(n<MIN_SKIN)return null;
+    a/=n;b/=n;return {a:a,b:b,sa:Math.sqrt(Math.max(0,aa/n-a*a)),sb:Math.sqrt(Math.max(0,bb/n-b*b))};
   }
   function distribution(image,o){return summarize(samplesFor(image,o,60000));}
-  function fitDistributions(a,b,o){
-    return {version:VERSION,inputSpace:"srgb",inputProfile:o.inputProfile,source:a,reference:b,
+  function fitDistributions(a,b,o,separateSkin){
+    var skinA=a.skin,skinB=b.skin,warnings=[];a=Object.assign({},a);b=Object.assign({},b);delete a.skin;delete b.skin;
+    if(separateSkin&&!skinA)warnings.push("No skin tones found in your frame: skin and background were matched together.");
+    else if(separateSkin&&!skinB)warnings.push("No skin tones found in the reference: skin and background were matched together.");
+    var model={version:VERSION,inputSpace:"srgb",inputProfile:o.inputProfile,source:a,reference:b,
       correction:{exposure:o.exposure,temperature:o.temperature,tint:o.tint},
       warnings:(a.quantiles[7]-a.quantiles[1]<0.12?["Source has little tonal variation; matching may be unreliable."]:[])
-        .concat(b.quantiles[7]-b.quantiles[1]<0.12?["Reference has little tonal variation; matching may be unreliable."]:[])};
+        .concat(b.quantiles[7]-b.quantiles[1]<0.12?["Reference has little tonal variation; matching may be unreliable."]:[]).concat(warnings)};
+    if(separateSkin&&skinA&&skinB)model.skin={source:skinA,reference:skinB};
+    return model;
   }
+  // options.separateSkin: match skin tones to the reference's skin and the rest to the rest.
   function fit(source,reference,options){
     var o=settings(options);
-    return fitDistributions(distribution(source,o),distribution(reference),o);
+    return fitDistributions(distribution(source,o),distribution(reference),o,!!(options&&options.separateSkin));
   }
   // Equal candidate-pixel budgets per sampled frame; alpha/matte rejection still
   // applies. This pools one shot once, not a model that follows every frame.
@@ -160,7 +175,7 @@
   }
   function fitFrames(frames,reference,options){
     var o=settings(options),shot=shotStatistics(frames,o);
-    var model=fitDistributions(shot.distribution,distribution(reference),o);
+    var model=fitDistributions(shot.distribution,distribution(reference),o,!!(options&&options.separateSkin));
     if(shot.spread>.25)
       model.warnings.push("Sampled frame brightness varies substantially. Check the shot range for cuts or lighting changes.");
     return model;
@@ -177,6 +192,8 @@
       if(d.chroma!==undefined&&(!Array.isArray(d.chroma)||d.chroma.length!==2||!d.chroma.every(function(v){return Number.isFinite(v)&&v>=0&&v<=1;})||d.chroma[1]<d.chroma[0]))throw Error("Invalid chroma tail");
     });
     if(!model.source.chroma!==!model.reference.chroma)throw Error("Chroma tail must be on both distributions");
+    if(model.skin!==undefined&&(!model.skin||[model.skin.source,model.skin.reference].some(function(z){
+      return !z||["a","b","sa","sb"].some(function(k){return !Number.isFinite(z[k])||Math.abs(z[k])>4;})||z.sa<0||z.sb<0;})))throw Error("Invalid skin palette");
     return model;
   }
   function toneMap(x,a,b){
@@ -240,6 +257,15 @@
         c[1]=mix(c[1],clamp((c[1]-sc.a)*ar+rc.a,-0.3,0.3),o.strength*protect);
         c[2]=mix(c[2],clamp((c[2]-sc.b)*br+rc.b,-0.3,0.3),o.strength*protect);
         c=chromaTail(c,base,source.chroma,ref.chroma,o.strength*protect);
+        if(model.skin){
+          // Skin pixels take the reference skin palette instead of the frame-wide match.
+          var w=skinWeight(base),ss=model.skin.source,rs=model.skin.reference;
+          if(w>0){
+            var sar=clamp((rs.sa+0.015)/(ss.sa+0.015),0.5,2),sbr=clamp((rs.sb+0.015)/(ss.sb+0.015),0.5,2);
+            c[1]=mix(c[1],mix(base[1],clamp((base[1]-ss.a)*sar+rs.a,-0.3,0.3),o.strength),w);
+            c[2]=mix(c[2],mix(base[2],clamp((base[2]-ss.b)*sbr+rs.b,-0.3,0.3),o.strength),w);
+          }
+        }
       }
       var t=smooth(0.15,0.85,c[0]),sat=o.saturation*look.sat;
       c[1]=c[1]*sat+mix(look.shadow[0],look.highlight[0],t);

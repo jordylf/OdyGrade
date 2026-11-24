@@ -188,6 +188,15 @@ Color apply_color(Color rgb,const Recipe& r,const Prepared& p) {
         c[1]=mix(c[1],clamp((c[1]-sc.a)*ar+rc.a,-.3,.3),s.strength*protect);
         c[2]=mix(c[2],clamp((c[2]-sc.b)*br+rc.b,-.3,.3),s.strength*protect);
         c=chroma_tail(c,base,source,ref,s.strength*protect);
+        // Mirrors engine.js: skin pixels take the reference skin palette.
+        if(r.model.has_skin) {
+            const auto w=skin_weight(base);const auto& ss=r.model.skin_source;const auto& rs=r.model.skin_reference;
+            if(w>0) {
+                const auto sar=clamp((rs.sa+.015)/(ss.sa+.015),.5,2),sbr=clamp((rs.sb+.015)/(ss.sb+.015),.5,2);
+                c[1]=mix(c[1],mix(base[1],clamp((base[1]-ss.a)*sar+rs.a,-.3,.3),s.strength),w);
+                c[2]=mix(c[2],mix(base[2],clamp((base[2]-ss.b)*sbr+rs.b,-.3,.3),s.strength),w);
+            }
+        }
     }
     const auto t=smooth(.15,.85,c[0]),sat=s.saturation*look.saturation;
     c[1]=c[1]*sat+mix(look.shadow[0],look.highlight[0],t);
@@ -364,6 +373,9 @@ void validate(const Recipe& r) {
     (void)stock_for(s.stock);check_range(s.stock_amount,0,1,"Invalid stock amount");
     if(r.model.enabled) {
         check_correction(r.model.correction);check_distribution(r.model.source);check_distribution(r.model.reference);
+        if(r.model.has_skin)for(const auto& z:{r.model.skin_source,r.model.skin_reference})
+            if(!std::isfinite(z.a)||!std::isfinite(z.b)||!std::isfinite(z.sa)||!std::isfinite(z.sb)||
+               std::abs(z.a)>4||std::abs(z.b)>4||z.sa<0||z.sb<0||z.sa>4||z.sb>4)throw std::invalid_argument("Invalid skin palette");
         if(r.model.input_profile!=s.input_profile)throw std::invalid_argument("Input profile changed: refit the match");
         if(std::abs(r.model.correction.exposure-s.exposure)>.000001||
            std::abs(r.model.correction.temperature-s.temperature)>.000001||

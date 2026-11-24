@@ -46,6 +46,7 @@ function guardRefit(){
   throw Error('This saved grade used multiple frames. Load your shot frames and press Create grade before changing its correction or profile.');
 }
 function fitCurrent(settings){
+ settings=Object.assign({},settings,{separateSkin:$("separateSkin").checked});
  return state.sourceFrames.length>1?E.fitFrames(state.sourceFrames.map(function(f){return f.analysis;}),state.reference,settings):E.fit(state.source,state.reference,settings);
 }
 function rememberFit(model){
@@ -256,6 +257,12 @@ try{
  state.worker.onmessage=function(e){var job=state.workerJobs[e.data.id];if(!job)return;delete state.workerJobs[e.data.id];if(e.data.error)job.reject(Error(e.data.error));else job.resolve(e.data);};
  state.worker.onerror=function(){Object.keys(state.workerJobs).forEach(function(k){state.workerJobs[k].reject(Error("Preview worker failed. Reload this panel."));});state.workerJobs={};state.worker.terminate();state.worker=null;};
 }catch(e){state.worker=null;}
+$("separateSkin").addEventListener("change",async function(){
+ if(!state.model)return;
+ try{guardRefit();rememberFit(fitCurrent(state.settings));await requestRender();
+  status(state.model.warnings.length?state.model.warnings.join(" "):this.checked?"Skin now follows the reference's skin tones.":"Skin and background are matched together.");
+ }catch(e){this.checked=!this.checked;fail(e);}
+});
 $("match").addEventListener("click",async function(){
  try{rememberFit(fitCurrent(state.settings));await requestRender();
   status(state.model.warnings.length?state.model.warnings.join(" "):"Grade created. Adjust the look, or export it for your scene.");
@@ -315,7 +322,7 @@ $("recipeInput").addEventListener("change",async function(){
   var file=this.files[0];if(!file)return;await whileBusy(async function(){
   if(file.size>1024*1024)throw Error("Recipe exceeds 1 MB.");
   var recipe=E.parse(await file.text()),film=F.normalize(recipe.film);
-  state.model=recipe.model;state.settings=recipe.settings;state.film=film;state.recipeLoaded=true;
+  state.model=recipe.model;state.settings=recipe.settings;state.film=film;state.recipeLoaded=true;$("separateSkin").checked=!!(recipe.model&&recipe.model.skin);
   state.analysis=recipe.analysis||null;state.importedSamples=state.analysis?(state.analysis.sampleCount||(Array.isArray(state.analysis.sampleIndices)?state.analysis.sampleIndices.length:0)):0;
   if(CM.PROFILES[state.settings.inputProfile].scene)$("lutSize").value='65';sync();
   await requestRender();status("Saved grade restored. Its fitted transform is retained across source images.");

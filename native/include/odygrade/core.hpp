@@ -19,6 +19,8 @@ struct Model {
     Distribution source{}, reference{};
     Correction correction{};
     std::string input_profile{"srgb"};
+    bool has_skin{};            // snapshot v6: separate skin palette match
+    Zone skin_source{}, skin_reference{};
 };
 struct Settings {
     double strength{1}, exposure{}, temperature{}, tint{}, contrast{1}, saturation{1};

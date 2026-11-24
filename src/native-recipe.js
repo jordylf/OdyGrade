@@ -7,7 +7,8 @@
   'use strict';
   function compile(recipe){
     var r=E.parse(JSON.stringify(recipe)),film=F.normalize(r.film),s=r.settings;
-    var lines=['ODYGRADE_NATIVE 5','settings '+[s.strength,s.exposure,s.temperature,s.tint,
+    // v6 adds the skin line; grades without a separate skin match stay v5 for older effects.
+    var lines=['ODYGRADE_NATIVE '+(r.model&&r.model.skin?6:5),'settings '+[s.strength,s.exposure,s.temperature,s.tint,
       s.contrast,s.saturation,s.preserveSkin,s.fade,s.shoulder].join(' '),'look '+s.look,'profile '+s.inputProfile,'stock '+s.stock+' '+s.stockAmount,'model '+(r.model?1:0)];
     function distribution(d){
       // v3: chroma tail p90 p99, or -1 -1 for models fitted before it existed.
@@ -17,6 +18,7 @@
       lines.push('correction '+[r.model.correction.exposure,r.model.correction.temperature,r.model.correction.tint].join(' '));
       lines.push('model-profile '+(r.model.version===1?'srgb':r.model.inputProfile));
       lines.push('source '+distribution(r.model.source),'reference '+distribution(r.model.reference));
+      if(r.model.skin)lines.push('skin '+[r.model.skin.source,r.model.skin.reference].reduce(function(v,z){return v.concat([z.a,z.b,z.sa,z.sb]);},[]).join(' '));
     }
     // v4: grain gauge/ISO and film format (weave, flicker, dust, perforations) follow the v1 film fields.
     lines.push('film '+[film.grain,film.bloom,film.halation,film.vignette,film.bleach,film.ratio,

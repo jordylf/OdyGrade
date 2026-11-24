@@ -23,7 +23,7 @@ Recipe read_recipe(const std::string& text) {
     if(text.size()>65536)throw std::invalid_argument("Native recipe exceeds 64 KB");
     std::istringstream in(text);in.imbue(std::locale::classic());
     token(in,"ODYGRADE_NATIVE");const auto version=number(in);
-    if(version!=1&&version!=2&&version!=3&&version!=4&&version!=5)throw std::invalid_argument("Unsupported native recipe version");
+    if(version!=1&&version!=2&&version!=3&&version!=4&&version!=5&&version!=6)throw std::invalid_argument("Unsupported native recipe version");
     Recipe r;auto& s=r.settings;auto& f=r.film;
     token(in,"settings");s.strength=number(in);s.exposure=number(in);s.temperature=number(in);s.tint=number(in);
     s.contrast=number(in);s.saturation=number(in);s.preserve_skin=number(in);s.fade=number(in);s.shoulder=number(in);
@@ -37,6 +37,8 @@ Recipe read_recipe(const std::string& text) {
         if(version>=2){token(in,"model-profile");if(!(in>>r.model.input_profile))throw std::invalid_argument("Missing model profile");}
         token(in,"source");r.model.source=distribution(in,version);
         token(in,"reference");r.model.reference=distribution(in,version);
+        if(version>=6){token(in,"skin");r.model.has_skin=true;
+            for(auto* z:{&r.model.skin_source,&r.model.skin_reference}){z->a=number(in);z->b=number(in);z->sa=number(in);z->sb=number(in);}}
     }
     token(in,"film");f.grain=number(in);f.bloom=number(in);f.halation=number(in);
     f.vignette=number(in);f.bleach=number(in);f.ratio=number(in);

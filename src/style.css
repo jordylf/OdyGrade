@@ -89,6 +89,8 @@ select{width:100%;min-height:30px;background:var(--raised);border:1px solid var(
 .control-line label{margin-right:auto}
 .control output{font:11px Consolas,monospace;color:var(--accent);background:#252f1f;padding:1px 5px;border-radius:3px}
 .tool-on{margin:0;accent-color:var(--accent);cursor:pointer;width:14px;height:14px}
+.check-row{display:flex;align-items:center;gap:7px;margin:10px 0 2px;font-size:12px;color:var(--text,inherit);cursor:pointer}
+.check-row input{margin:0;accent-color:var(--accent);width:14px;height:14px}
 input[type=range]{width:100%;display:block;margin:6px 0 0;accent-color:var(--accent);cursor:pointer}
 .control.off input[type=range],.control.off output,.control.off label{opacity:.4}
 .control-help{color:var(--muted);font-size:11px;margin-top:4px}
