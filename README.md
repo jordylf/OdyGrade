@@ -90,7 +90,7 @@ Move match strength, exposure, temperature, tint, contrast, saturation and skin 
 - Docks beside your timeline in AE and Premiere
 - **10 original looks**: Neutral, Amber Hour, Nocturne, Evergreen, Rose Memory, Silver Screen, Coastal Blue, Earth & Ochre, Cyan District, Velvet Night
 - **Skin hue protection** keeps faces natural
-- **Match skin and background separately**: skin takes the reference's skin tones, the rest takes its palette
+- **Match skin and background separately**: skin takes the reference's skin tones, the rest takes its palette. Faces are found with the face detector built into Windows, so skin-coloured clothes or walls keep the normal match; without a face, skin is picked by colour
 - **Save .odyn / Open** to reuse a grade on other shots
 - **Export .cube** for a colour-only LUT
 
@@ -129,12 +129,17 @@ Move match strength, exposure, temperature, tint, contrast, saturation and skin 
 
 <details><summary><b>Which camera profile should I choose?</b></summary>
 
-The one your footage was shot in, unconverted: sRGB / Rec.709 for normal video, or Sony S-Log3, Panasonic V-Log, ARRI LogC3, Canon C-Log3, Fujifilm F-Log, DJI D-Log, Apple Log or Blackmagic Film Gen 5. If your editor already converted the LOG footage, choose sRGB. Details: [Color management](docs/COLOR-MANAGEMENT.md).
+The one your footage was shot in, unconverted: sRGB / Rec.709 for normal video, or Sony S-Log3, Panasonic V-Log, ARRI LogC3, Canon C-Log3, Fujifilm F-Log, DJI D-Log, Apple Log or Blackmagic Film Gen 5. If your editor already converted the LOG footage, choose sRGB. Details: [Color management](docs/COLOR-MANAGEMENT.md). When you capture a frame from the timeline, OdyGrade picks the profile itself from the clip's metadata for Sony S-Log3 and HLG, Panasonic V-Log, DJI D-Log and HLG, and Apple Log. Only Sony is tested with real clips; the others follow the published metadata and are untested. DJI D-Log M and D-Log2 are different curves and are not picked.
 </details>
 
 <details><summary><b>What about iPhone HDR (HLG) video?</b></summary>
 
 In After Effects (default project, no working space) choose **HLG / Rec.2020**. Premiere tone-maps HLG to Rec.709 by default, so choose **sRGB** there.
+</details>
+
+<details><summary><b>Can I deliver HDR?</b></summary>
+
+Yes, for Premiere HDR sequences: set **Delivery** next to *Apply* to **HDR HLG** or **HDR PQ** (Rec.2100). The grade is still made in SDR, so the match and looks stay the same; at the end SDR white is placed at the HDR reference level (HLG 75%, PQ 203 nits) in Rec.2020, and for LOG/HLG/PQ sources the highlights the SDR rolloff compressed are opened back up to 1000 nits. In the sequence pick the matching source profile (**HLG / Rec.2020** or **PQ / Rec.2020**). The panel preview stays SDR. Exported LUTs carry the chosen delivery. Because the grade itself is made in SDR Rec.709, colours outside Rec.709 are clipped to it and very bright coloured highlights lose some saturation; greys and normal colours pass through a neutral grade unchanged. Render HDR at Maximum Bit Depth (32-bit): 8-bit bands the highlights. Checked in Premiere 2024 with HLG and PQ sequences and ProRes HLG/PQ exports.
 </details>
 
 <details><summary><b>Does the grade change from frame to frame?</b></summary>
@@ -159,7 +164,7 @@ The panel is not signed as a ZXP yet, and Adobe only loads unsigned panels in de
 
 <details><summary><b>What are the limits?</b></summary>
 
-Windows only, and not yet tested on a clean machine. Output is SDR: values above 1.0 are clipped in AE 32 bpc. LOG profiles follow the published curves; Sony S-Log3 is checked with real A7 IV and 5K open-gate footage, the others only against the curves. Matching is statistical, not a trained model. See [Status](docs/STATUS.md).
+Windows only, and not yet tested on a clean machine. Output is SDR, or Rec.2100 HLG/PQ for Premiere HDR sequences (wide-gamut colours are clipped to Rec.709); values above 1.0 are clipped in AE 32 bpc. LOG profiles follow the published curves; Sony S-Log3 is checked with real A7 IV and 5K open-gate footage, the others only against the curves. Matching is statistical, not a trained model. See [Status](docs/STATUS.md).
 </details>
 
 ---

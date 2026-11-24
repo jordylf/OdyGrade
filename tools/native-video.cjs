@@ -77,6 +77,7 @@ function clockedImages(p){
  return lines.join('\n')+'\n';
 }
 async function renderVideo(recipe,input,output,options={}){
+ if(recipe.settings.output!=='sdr')throw Error('HDR delivery is for the Adobe effect and LUT export; offline renders are SDR. Set delivery to SDR.');
  input=path.resolve(input);output=path.resolve(output);
  if(path.extname(output).toLowerCase()!=='.mov')throw Error('Native video output must be .mov (ProRes).');
  if(fs.existsSync(output))throw Error('Output already exists: '+output);

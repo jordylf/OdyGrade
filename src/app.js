@@ -4,7 +4,7 @@ var E=window.OdyColor,F=window.OdyFilm,B=window.OdyBridge,CM=window.OdyInput;
 var $=function(id){return document.getElementById(id);};
 var state={source:null,reference:null,sourceImage:null,model:null,settings:E.settings(),film:F.normalize(),
  sourceFrames:[],activeFrame:0,analysis:null,importedSamples:0,
- view:"graded",result:null,renderId:0,worker:null,workerJobs:{},busy:false,off:{}};
+ view:"graded",result:null,renderId:0,worker:null,workerJobs:{},busy:false,off:{},faces:{}};
 // Per-tool On switches: a switched-off tool renders/exports at its neutral value; the slider keeps its value.
 var NEUTRAL={settings:{strength:0,contrast:1,saturation:1,preserveSkin:0,fade:0,shoulder:0,stockAmount:0},
  film:{grain:0,bloom:0,halation:0,vignette:0,bleach:0,weave:0,flicker:0,dust:0}};
@@ -45,8 +45,45 @@ function guardRefit(){
  if(state.recipeLoaded&&state.importedSamples>1)
   throw Error('This saved grade used multiple frames. Load your shot frames and press Create grade before changing its correction or profile.');
 }
+// Face boxes from the Windows face detector (host/faces.ps1, run through the panel's Node).
+// null when it cannot run (reason in state.faceError): the skin split then picks skin by colour.
+// Without CEP mixed context Node's globals (process, Buffer) live on cep_node, not window.
+function detectFaces(image){
+ var node=window.cep_node,req=node&&node.require||window.require;
+ if(!image)return Promise.resolve(null);
+ if(typeof req!=="function"){state.faceError="Node.js is not enabled in this panel";return Promise.resolve(null);}
+ return new Promise(function(resolve){
+  function fail(e){state.faceError=String(e&&e.message||e).slice(0,160);resolve(null);}
+  try{
+   var fs=req("fs"),os=req("os"),path=req("path"),url=req("url"),cp=req("child_process"),proc=node&&node.process||req("process"),c=document.createElement("canvas");paint(c,image);
+   var file=path.join(os.tmpdir(),"odygrade-face-"+Date.now()+"-"+Math.floor(Math.random()*1e9)+".png");
+   fs.writeFileSync(file,c.toDataURL("image/png").split(",")[1],"base64");
+   var script=url.fileURLToPath(new URL("host/faces.ps1",location.href).href);
+   cp.execFile(path.join(proc.env.SystemRoot||"C:\\Windows","System32","WindowsPowerShell","v1.0","powershell.exe"),["-NoProfile","-NonInteractive","-ExecutionPolicy","Bypass","-File",script,"-Path",file],{windowsHide:true,timeout:20000},function(err,stdout){
+    try{fs.unlinkSync(file);}catch(ignore){}
+    if(err)return fail(err);
+    resolve(String(stdout).split(/\r?\n/).map(function(line){return line.trim().split(/\s+/).map(Number);})
+     .filter(function(b){return b.length===4&&b.every(function(v){return v>=0&&v<=1;})&&b[2]>0&&b[3]>0;}));
+   });
+  }catch(e){fail(e);}
+ });
+}
+// Looked up once per image, only when the skin split is on. A failed run (null) is retried next time.
+async function ensureFaces(){
+ if(!$("separateSkin").checked)return;
+ var f=state.faces;
+ if(!Array.isArray(f.source)&&state.sourceFrames.length===1){status("Looking for faces…");f.source=await detectFaces(state.source);}
+ if(!Array.isArray(f.reference)&&state.reference){status("Looking for faces…");f.reference=await detectFaces(state.reference);}
+}
+function skinNote(){
+ if(!$("separateSkin").checked||!state.model||!state.model.skin)return "";
+ if(state.model.skin.face)return " Skin measured on the face.";
+ var f=state.faces;
+ return f.source===null||f.reference===null?" Face detection could not run ("+(state.faceError||"unknown")+"): skin picked by colour.":" No face found: skin picked by colour.";
+}
 function fitCurrent(settings){
- settings=Object.assign({},settings,{separateSkin:$("separateSkin").checked});
+ settings=Object.assign({},settings,{separateSkin:$("separateSkin").checked,
+  faces:{source:state.sourceFrames.length===1?state.faces.source:null,reference:state.faces.reference}});
  return state.sourceFrames.length>1?E.fitFrames(state.sourceFrames.map(function(f){return f.analysis;}),state.reference,settings):E.fit(state.source,state.reference,settings);
 }
 function rememberFit(model){
@@ -96,12 +133,13 @@ function controls(){
 }
 function syncControl(id,v){var on=$(id+"On");if(on){on.checked=!state.off[id];on.parentElement.parentElement.classList.toggle("off",!!state.off[id]);}var el=$(id);el.value=v;$(id+"Value").textContent=(v*Number(el.dataset.multiplier)).toFixed(id==="exposure"?2:0)+el.dataset.suffix;}
 function sync(){
- Object.keys(state.settings).forEach(function(k){if(k!=="look"&&k!=="inputProfile"&&k!=="stock")syncControl(k,state.settings[k]);});
- $("stock").value=state.settings.stock;
+ Object.keys(state.settings).forEach(function(k){if(k!=="look"&&k!=="inputProfile"&&k!=="stock"&&k!=="output")syncControl(k,state.settings[k]);});
+ $("stock").value=state.settings.stock;$("output").value=state.settings.output;
  $("sourceProfile").value=state.settings.inputProfile;
  $("profileHelp").textContent=state.settings.inputProfile==='srgb'?'Use for screenshots or footage already normalized by your editor.':
   state.settings.inputProfile==='rec709-gamma24'?'Full-range display RGB, gamma 2.4 with ideal black. This is not camera Rec.709 OETF.':
-  state.settings.inputProfile==='hlg-rec2020'?'iPhone HDR (HLG) delivered unconverted, e.g. After Effects default (no working space). Premiere tone-maps HLG to Rec.709 by default: use sRGB there.':
+  state.settings.inputProfile==='hlg-rec2020'?'iPhone HDR (HLG) delivered unconverted, e.g. After Effects default (no working space). Premiere tone-maps HLG to Rec.709 by default: use sRGB there, or this profile in an HLG sequence.':
+  state.settings.inputProfile==='pq-rec2020'?'Pixels of a Premiere PQ (Rec.2100) sequence. Pair with HDR PQ delivery.':
   'Use full-range, unconverted LOG values. Our SDR highlight rolloff is included in the exported LUT.';
  var selects=["ratio","gauge","format","perfs"];Object.keys(state.film).forEach(function(k){if(selects.indexOf(k)<0)syncControl(k,state.film[k]);else $(k).value=state.film[k];});
  Array.prototype.forEach.call(document.querySelectorAll(".look"),function(b){b.classList.toggle("active",b.dataset.look===state.settings.look);b.setAttribute("aria-pressed",String(b.dataset.look===state.settings.look));});
@@ -124,7 +162,7 @@ function setupProfiles(){
     guardRefit();model=fitCurrent(next);
    }
    state.settings=next;if(model!==state.model)rememberFit(model);if(CM.PROFILES[next.inputProfile].scene)$("lutSize").value='65';sync();await requestRender();
-   status('Source profile: '+CM.PROFILES[next.inputProfile].name+'. Reference and output remain sRGB.');
+   status('Source profile: '+CM.PROFILES[next.inputProfile].name+'. Reference screenshots stay sRGB.');
   }catch(e){sync();fail(e);}
  });
 }
@@ -145,7 +183,7 @@ async function setImage(which,url,label){
   commitSources([{label:label,url:url,preview:image,analysis:pixels(img,512)}],img);
   await requestRender();status(label+' loaded. '+(state.model?'Saved transform retained.':'Ready to create a grade.'));return;
  }
- state[which]=image;
+ state[which]=image;state.faces.reference=undefined;
  state.referenceName=label;
  paint($(which+"Canvas"),image);$(which+"Canvas").hidden=false;$(which+"Empty").hidden=true;$(which+"Tag").hidden=false;
  $(which+"Drop").classList.add("loaded");
@@ -163,7 +201,7 @@ function showSource(index,img){
  buttons();
 }
 function commitSources(frames,img){
- state.sourceFrames=frames;
+ state.sourceFrames=frames;state.faces.source=undefined;
  $('shotFrame').textContent='';frames.forEach(function(frame,i){var option=document.createElement('option');option.value=String(i);option.textContent=(i+1)+' / '+frames.length+' · '+frame.label;$('shotFrame').appendChild(option);});
  $('shotControls').hidden=frames.length<2;
  if(state.model&&!state.recipeLoaded){state.model=null;state.analysis=null;}
@@ -259,13 +297,13 @@ try{
 }catch(e){state.worker=null;}
 $("separateSkin").addEventListener("change",async function(){
  if(!state.model)return;
- try{guardRefit();rememberFit(fitCurrent(state.settings));await requestRender();
-  status(state.model.warnings.length?state.model.warnings.join(" "):this.checked?"Skin now follows the reference's skin tones.":"Skin and background are matched together.");
+ try{guardRefit();await whileBusy(ensureFaces);rememberFit(fitCurrent(state.settings));await requestRender();
+  status(state.model.warnings.length?state.model.warnings.join(" "):this.checked?"Skin now follows the reference's skin tones."+skinNote():"Skin and background are matched together.");
  }catch(e){this.checked=!this.checked;fail(e);}
 });
 $("match").addEventListener("click",async function(){
- try{rememberFit(fitCurrent(state.settings));await requestRender();
-  status(state.model.warnings.length?state.model.warnings.join(" "):"Grade created. Adjust the look, or export it for your scene.");
+ try{await whileBusy(ensureFaces);rememberFit(fitCurrent(state.settings));await requestRender();
+  status(state.model.warnings.length?state.model.warnings.join(" "):"Grade created."+skinNote()+" Adjust the look, or export it for your scene.");
  }catch(e){fail(e);}
 });
 $("auto").addEventListener("click",async function(){
@@ -278,8 +316,10 @@ $("auto").addEventListener("click",async function(){
 });
 Object.keys(E.STOCKS).forEach(function(k){var o=document.createElement("option");o.value=k;o.textContent=E.STOCKS[k].name;$("stock").appendChild(o);});
 $("stock").addEventListener("change",function(){state.settings=Object.assign({},state.settings,{stock:this.value});requestRender().catch(fail);});
+$("output").addEventListener("change",function(){state.settings=Object.assign({},state.settings,{output:this.value});
+ status(this.value==="sdr"?"Delivery: SDR.":"Delivery: Rec.2100 "+this.value.toUpperCase()+" for an HDR sequence. The preview stays SDR; the effect and the LUT carry HDR.");});
 ["ratio","gauge","format","perfs"].forEach(function(id){$(id).addEventListener("change",function(){state.film[id]=Number(this.value);requestRender().catch(fail);});});
-$("reset").addEventListener("click",function(e){e.preventDefault();state.off={};state.settings=E.settings({inputProfile:state.settings.inputProfile});state.film=F.normalize();state.model=null;state.analysis=null;state.recipeLoaded=false;sync();requestRender().catch(fail);status("Color and film controls reset. Source profile retained.");});
+$("reset").addEventListener("click",function(e){e.preventDefault();state.off={};state.settings=E.settings({inputProfile:state.settings.inputProfile,output:state.settings.output});state.film=F.normalize();state.model=null;state.analysis=null;state.recipeLoaded=false;sync();requestRender().catch(fail);status("Color and film controls reset. Source profile retained.");});
 $("shotFrame").addEventListener('change',function(){selectSource(Number(this.value));});
 $("previousFrame").addEventListener('click',function(){selectSource(state.activeFrame-1);});
 $("nextFrame").addEventListener('click',function(){selectSource(state.activeFrame+1);});

@@ -69,6 +69,7 @@ function main(argv){
    .finally(()=>{process.removeListener('SIGINT',cancel);process.removeListener('SIGTERM',cancel);});
  }else if(a.command==='video'){
   const r=recipe(required(a,'recipe')),film=F.normalize(r.film);
+  if(r.settings.output!=='sdr')throw Error('HDR delivery is for the Adobe effect and LUT export; offline renders are SDR. Set delivery to SDR.');
   if(Object.keys(film).some(k=>film[k]!==F.DEFAULTS[k]))throw Error('Video renderer supports color only. Set spatial film controls to zero.');
   if(path.extname(output).toLowerCase()!=='.mov')throw Error('Video output must be .mov (ProRes).');
   const input=path.resolve(required(a,'input')),dir=fs.mkdtempSync(path.join(os.tmpdir(),'odygrade-'));

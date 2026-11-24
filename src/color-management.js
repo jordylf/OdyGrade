@@ -1,6 +1,6 @@
 /* Explicit input transforms. See docs/COLOR-MANAGEMENT.md for manufacturer
  * references and the distinction between log decoding and our SDR display map. */
-(function(root,factory){var api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.OdyInput=api;
+(function(root,factory){var api=factory();if(typeof module==='object'&&module.exports&&typeof window==='undefined'&&typeof importScripts==='undefined')module.exports=api;else root.OdyInput=api;
 })(typeof window!=='undefined'?window:this,function(){
   'use strict';
   function invert(m){
@@ -37,11 +37,17 @@
     'dji-dlog-dgamut':camera('DJI D-Log / D-Gamut',7,'dgamut'),
     'apple-log-rec2020':camera('Apple Log / Rec.2020',8,'rec2020'),
     'blackmagic-film5-wg5':camera('Blackmagic Film Gen 5 / Wide Gamut Gen 5',9,'bmdwg'),
-    'hlg-rec2020':camera('HLG / Rec.2020 (iPhone HDR video)',10,'rec2020')
+    'hlg-rec2020':camera('HLG / Rec.2020 (iPhone HDR video)',10,'rec2020'),
+    'pq-rec2020':camera('PQ / Rec.2020 (HDR10, Premiere PQ sequence)',11,'rec2020')
   };
   function profile(id){if(!Object.prototype.hasOwnProperty.call(PROFILES,id))throw Error('Unsupported input profile');return PROFILES[id];}
   var HLG_A=.17883277,HLG_B=1-4*HLG_A,HLG_C=.5-HLG_A*Math.log(4*HLG_A);
   function hlg(x){return x<=.5?x*Math.abs(x)/3:(Math.exp((x-HLG_C)/HLG_A)+HLG_B)/12;}
+  function hlgOETF(e){return e<=1/12?Math.sqrt(3*Math.max(0,e)):HLG_A*Math.log(12*e-HLG_B)+HLG_C;}
+  // SMPTE ST 2084 (PQ), absolute cd/m2 / 10000. BT.2408 HDR reference white: 203 cd/m2 = SDR 1.0.
+  var PQ_M1=2610/16384,PQ_M2=2523/4096*128,PQ_C1=3424/4096,PQ_C2=2413/4096*32,PQ_C3=2392/4096*32,REF_WHITE=203;
+  function pq(x){var p=Math.pow(Math.max(0,x),1/PQ_M2);return Math.pow(Math.max(0,p-PQ_C1)/(PQ_C2-PQ_C3*p),1/PQ_M1);}
+  function pqOETF(y){var p=Math.pow(Math.max(0,y),PQ_M1);return Math.pow((PQ_C1+PQ_C2*p)/(1+PQ_C3*p),PQ_M2);}
   function decode(x,transfer){
     if(transfer===0)return x<=.04045?x/12.92:Math.pow((x+.055)/1.055,2.4);
     if(transfer===1)return Math.pow(Math.max(0,x),2.4);
@@ -59,6 +65,7 @@
     if(transfer===9)return x<8.283605932402494*.005+.09246575342465753?(x-.09246575342465753)/8.283605932402494:  // Blackmagic Film Gen 5
       Math.exp((x-.5300133392291939)/.08692876065491224)-.005494072432257808;
     if(transfer===10)return hlg(x)/hlg(.75);  // BT.2100 HLG inverse OETF; BT.2408 diffuse white (75%) = 1.0
+    if(transfer===11)return pq(x)*10000/REF_WHITE;  // PQ EOTF; 203 cd/m2 = 1.0
     throw Error('Unsupported transfer function');
   }
   function encodeSRGB(x){return x<=.0031308?12.92*x:1.055*Math.pow(x,1/2.4)-.055;}
@@ -76,6 +83,23 @@
     var peak=Math.max(c[0],c[1],c[2]),d=displayMap(peak),s=peak>.8?d/peak:1,w=smooth(0,2,Math.log(Math.max(peak,1e-6))/Math.LN2);
     return c.map(function(x){return d+(x*s-d)*(1-w);});
   }
+  // HDR delivery (Rec.2100). The grade itself stays SDR; at the very end SDR white goes to BT.2408
+  // reference white (HLG 75%, PQ 203 cd/m2) in Rec.2020 primaries. With expand (scene sources:
+  // LOG/HLG/PQ) the peak range 0.8..1 that displayMap compressed is undone exactly, up to a 1000 cd/m2
+  // peak (HLG: signal 1.0). 8-bit hosts quantize near white, so HDR wants 32-bit rendering. Mirrored by encode_output in core.cpp.
+  var OUTPUTS=['sdr','hlg','pq'];
+  // BT.2087 Rec.709 -> Rec.2020 linear RGB.
+  var TO2020=[.627403896,.329283039,.043313065,.069097289,.919540395,.011362316,.016391439,.088013308,.895595253];
+  function encodeOutput(rgb,output,expand){
+    if(output==='sdr')return rgb.slice();
+    if(OUTPUTS.indexOf(output)<0)throw Error('Unsupported output');
+    var c=rgb.map(function(x){x=Math.max(0,Math.min(1,x));return x<=.04045?x/12.92:Math.pow((x+.055)/1.055,2.4);});
+    var cap=output==='hlg'?1/hlg(.75):1000/REF_WHITE,peak=Math.max(c[0],c[1],c[2]);
+    // Exact inverse of displayMap (a neutral HDR->HDR grade keeps diffuse white), capped at the peak.
+    if(expand&&peak>.8){var k=(peak<1?Math.min(cap,.8-.2*Math.log(1-(peak-.8)/.2)):cap)/peak;c=c.map(function(x){return x*k;});}
+    return vector(TO2020,c).map(function(x){
+      x=Math.max(0,x);return Math.min(1,output==='hlg'?hlgOETF(Math.min(1,x*hlg(.75))):pqOETF(x*REF_WHITE/10000));});
+  }
   function toLinear709(rgb,id){var p=profile(id);return vector(p.matrix,rgb.map(function(x){return decode(x,p.transfer);}));}
   function create(id){
     var p=profile(id);
@@ -87,5 +111,5 @@
     };
   }
   return {PROFILES:PROFILES,profile:profile,create:create,toLinear709:toLinear709,decode:decode,
-    encodeSRGB:encodeSRGB,displayMap:displayMap,rgbToXYZ:rgbToXYZ};
+    encodeSRGB:encodeSRGB,displayMap:displayMap,rgbToXYZ:rgbToXYZ,OUTPUTS:OUTPUTS,encodeOutput:encodeOutput,TO2020:TO2020};
 });

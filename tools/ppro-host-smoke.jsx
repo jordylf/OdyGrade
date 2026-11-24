@@ -24,6 +24,9 @@
  // OdyGrade (<dir>/grade.odyn + params.txt); reports export seconds.
  var perf=root.indexOf('perf ')===0;if(perf)root=root.substring(5);
 var perfx=root.indexOf('perfx ')===0;if(perfx)root=root.substring(6);
+ // "hdr <dir>": NEW scratch project with <dir>/source.mov. Per working colour space (HLG, PQ): a sequence,
+ // ProRes HLG/PQ export without OdyGrade, then with <dir>/grade-<kind>.odyn (neutral, same in/out).
+ var hdr=root.indexOf('hdr ')===0;if(hdr)root=root.substring(4);
  if(reopen||exporting)root=root.substring(7);if(applying||probe||depth)root=root.substring(6);if(real||snap)root=root.substring(5);if(rframes||reapply)root=root.substring(8);
  if(snap){sname=root.substring(root.lastIndexOf('|')+1);root=root.substring(0,root.lastIndexOf('|'));}
  if(probe){  // read-only: report each clip's Grade link value in the active sequence
@@ -37,7 +40,7 @@ var perfx=root.indexOf('perfx ')===0;if(perfx)root=root.substring(6);
   if(qi){pv.push('\nQE item: '+names(qi));try{pv.push('\nQE numComponents='+qi.numComponents);var qc=qi.getComponentAt(qi.numComponents-1);pv.push('\nQE component: '+names(qc)+' name='+qc.name);}catch(cx){pv.push('\nqe comp err '+cx);}}
   pr.open('w');pr.write(pv.join(' '));pr.close();return;}
  // Table, not a nested ternary: PPro 24 ExtendScript picked the wrong branch of the long chain.
- var names=[[reopen,'host-result'],[applying,'apply-result'],[exporting,'export-queued'],[real,'real-result'],[rframes,'rframes-result'],[depth,'depth-result'],[reapply,'reapply-result'],[snap,'snap-'+sname],[perf,'perf-result'],[perfx,'perfx-result']],rn='phase1';
+ var names=[[reopen,'host-result'],[applying,'apply-result'],[exporting,'export-queued'],[real,'real-result'],[rframes,'rframes-result'],[depth,'depth-result'],[reapply,'reapply-result'],[snap,'snap-'+sname],[perf,'perf-result'],[perfx,'perfx-result'],[hdr,'hdr-result']],rn='phase1';
  for(var ni=0;ni<names.length;ni++)if(names[ni][0]){rn=names[ni][1];break;}
  var dir=new Folder(root),report=new File(dir.fsName+'/'+rn+'.json'),log=[];
  function quote(s){return '"'+String(s).replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\r/g,'\\r').replace(/\n/g,'\\n')+'"';}
@@ -90,6 +93,35 @@ var perfx=root.indexOf('perfx ')===0;if(perfx)root=root.substring(6);
    var pr=eval('('+OdyHost.apply(encodeURIComponent(psnap),pparams)+')');log.push('apply='+pr.ok+' err='+pr.error);if(!pr.ok)throw Error(pr.error);
    run('on');run('on2');app.project.save();
    write(true,'Perf export done (off, on, on2).');return;
+  }
+  if(hdr){
+   if(app.projects.numProjects>0)throw Error('A project is already open. Refused; nothing modified.');
+   var hp=dir.fsName+'/ppro-hdr.prproj';if(new File(hp).exists)throw Error('Existing project preserved; use a fresh scratch folder');
+   if(!app.newProject(hp)||!app.project||!same(app.project.path,hp))throw Error('Could not create the scratch project');
+   app.project.importFiles([dir.fsName+'/source.mov'],true,app.project.rootItem,false);
+   var hi=app.project.rootItem.children[0];if(!hi)throw Error('Import failed');
+   $.evalFile(new File($.fileName).parent.parent.fsName+'/host/bridge.jsx');
+   var hparams=[['Look',0,1],['Match strength',100,0],['Exposure trim',0,0],['Temperature trim',0,0],['Tint trim',0,0],['Contrast',100,0],['Saturation',100,0],['Skin hue protection',65,0],['Faded black',0,0],['Highlight softness',0,0],['Grain',0,0],['Bloom',0,0],['Halation',0,0],['Vignette',0,0],['Bleach bypass',0,0],['Frame ratio',0,1],['Film stock',0,1],['Stock amount',100,0]];
+   var kinds=[['hlg',/hlg|b67|2100.*hlg/i,'Apple ProRes 422 HQ HLG.epr'],['pq',/pq|2084/i,'Apple ProRes 422 HQ PQ.epr']];
+   function desc(o){var d=[];for(var q in o){try{d.push(q+'='+o[q]);}catch(dx){}}return d.join(',');}
+   for(var hk=0;hk<kinds.length;hk++){
+    var kd=kinds[hk],hs=app.project.createNewSequenceFromClips('OdyGrade '+kd[0],[hi],app.project.rootItem);if(!hs)throw Error('Sequence creation failed');
+    app.project.activeSequence=hs;var st=hs.getSettings(),list=st.workingColorSpaceList,seen=[],pick=null;
+    log.push(kd[0]+' initial working: '+desc(st.workingColorSpace)+' autoToneMap='+st.autoToneMapEnabled);
+    for(var li=0;li<list.length;li++){var ld=desc(list[li]);seen.push(ld);if(!pick&&kd[1].test(ld))pick=list[li];}
+    log.push(kd[0]+' spaces: '+seen.join(' | '));
+    if(!pick)throw Error('No '+kd[0]+' working colour space');
+    st.workingColorSpace=pick;hs.setSettings(st);log.push(kd[0]+' working now: '+desc(hs.getSettings().workingColorSpace));
+    var hpre=new File('C:/Program Files/Adobe/Adobe Premiere Pro 2024/MediaIO/systempresets/3F3F3F3F_4D6F6F56/'+kd[2]);if(!hpre.exists)throw Error('No preset '+kd[2]);
+    var hoff=new File(dir.fsName+'/'+kd[0]+'-off.mov'),hon=new File(dir.fsName+'/'+kd[0]+'-on.mov');if(hoff.exists||hon.exists)throw Error('Output exists');
+    log.push(kd[0]+' off ret='+hs.exportAsMediaDirect(hoff.fsName,hpre.fsName,app.encoder.ENCODE_ENTIRE));
+    hs.videoTracks[0].clips[0].setSelected(true,true);
+    var hg=new File(dir.fsName+'/grade-'+kd[0]+'.odyn');hg.open('r');var hsnap=hg.read();hg.close();
+    var hr=eval('('+OdyHost.apply(encodeURIComponent(hsnap),hparams)+')');log.push(kd[0]+' apply='+hr.ok+' count='+hr.count+' err='+hr.error);if(!hr.ok)throw Error(hr.error);
+    log.push(kd[0]+' on ret='+hs.exportAsMediaDirect(hon.fsName,hpre.fsName,app.encoder.ENCODE_ENTIRE));
+    hs.videoTracks[0].clips[0].setSelected(false,true);
+   }
+   app.project.save();write(true,'HDR exports done (hlg/pq off and on).');return;
   }
   if(real){
    if(app.projects.numProjects>0)throw Error('A project is already open. Refused; nothing modified.');

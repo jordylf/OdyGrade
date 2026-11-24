@@ -26,23 +26,59 @@ var OdyHost = {
         if(!f.exists){var alternate=new File(base);if(alternate.exists)f=alternate;}
       }
       if(!f.exists)throw Error("Frame capture produced no file. Export a PNG manually and import it.");
-      var profile="";try{profile=this.profileFromXml(this.mediaXml(this.mediaUnderPlayhead()));}catch(ignore){}
+      var profile="";try{profile=this.profileFromMeta(this.mediaMeta(this.mediaUnderPlayhead()));}catch(ignore){}
       return this.reply({ok:true,path:f.fsName,profile:profile});
     }catch(e){return this.reply({ok:false,error:e.toString()});}
   },
-  /* Camera metadata -> OdyGrade profile key, "" when unknown. Sony writes NonRealTimeMeta XML
-     (CaptureGammaEquation / CaptureColorPrimaries) into its MP4s. Only exact matches. */
-  profileFromXml:function(xml){
-    var g=/CaptureGammaEquation"\s+value="([^"]+)"/.exec(xml||""),p=/CaptureColorPrimaries"\s+value="([^"]+)"/.exec(xml||"");
-    if(!g)return "";g=g[1].toLowerCase();p=p?p[1].toLowerCase():"";
-    if(g.indexOf("s-log3")===0&&p==="s-gamut3-cine")return "sony-slog3-sgamut3cine";
-    if(g==="rec2100-hlg"&&(p==="rec2020"||p==="rec2100"))return "hlg-rec2020";
+  /* Camera metadata -> OdyGrade profile key, "" when unknown. Only exact matches, never a guess.
+     Sony: NonRealTimeMeta XML (CaptureGammaEquation / CaptureColorPrimaries).
+     Panasonic: com.panasonic.Semi-Pro.metadata.xml (<CaptureGamma> / <CaptureGamut>).
+     Apple: logs atom or customgamma "com.apple.rec2020.apple-log" (Apple Log 2 is not this profile).
+     DJI: QuickTime key com.dji.camera.ColorGammaSxS; the colr box says Rec.709 even for D-Log.
+     Panasonic, Apple and DJI were written from documentation and have not been tried on real clips. */
+  profileFromMeta:function(s){
+    s=s||"";var g=/CaptureGammaEquation"\s+value="([^"]+)"/.exec(s),p=/CaptureColorPrimaries"\s+value="([^"]+)"/.exec(s);
+    if(g){g=g[1].toLowerCase();p=p?p[1].toLowerCase():"";
+      if(g.indexOf("s-log3")===0&&p==="s-gamut3-cine")return "sony-slog3-sgamut3cine";
+      if(g==="rec2100-hlg"&&(p==="rec2020"||p==="rec2100"))return "hlg-rec2020";
+      return "";}
+    g=/<(?:[\w-]+:)?CaptureGamma\b[^>]*>([^<]*)</.exec(s);p=/<(?:[\w-]+:)?CaptureGamut\b[^>]*>([^<]*)</.exec(s);
+    if(g){g=g[1].replace(/^\s+|\s+$/g,"").toLowerCase();p=p?p[1].replace(/^\s+|\s+$/g,"").toLowerCase():"";
+      return (g==="v-log"||g==="v-logl")&&p==="v-gamut"?"panasonic-vlog-vgamut":"";}  // V-Log L uses the V-Log curve
+    if(/com\.apple\.rec2020\.apple-log(?![\w.-])/.test(s))return "apple-log-rec2020";
+    g=this.quickTimeKeys(s)["com.dji.camera.ColorGammaSxS"];
+    if(g){g=g.replace(/[\s\0]+$/,"").toLowerCase();  // D-Log M and D-Log2 are other curves: not matched
+      if(g==="d-log")return "dji-dlog-dgamut";if(g==="rec.2100 hlg")return "hlg-rec2020";}
     return "";
   },
-  /* The XML sits near the end of the file (sometimes the start): read 64 KB of each. */
-  mediaXml:function(path){
-    if(!path)return "";var f=new File(path),s="";f.encoding="BINARY";if(!f.open("r"))return "";
-    try{s=f.read(65536);if(f.length>65536){f.seek(Math.max(65536,f.length-65536));s+=f.read(65536);}}finally{f.close();}
+  u32:function(s,i){return s.charCodeAt(i)*16777216+(s.charCodeAt(i+1)<<16)+(s.charCodeAt(i+2)<<8)+s.charCodeAt(i+3);},
+  /* QuickTime metadata: a 'keys' box (mdta names) and an 'ilst' box whose items are numbered by key. */
+  quickTimeKeys:function(s){
+    var out={},k=-1,names,i,j,n,sz,l,end,d,idx;
+    while((k=s.indexOf("keys",k+1))!==-1){
+      n=this.u32(s,k+8);i=k+12;names=[];
+      if(k<4||this.u32(s,k+4)!==0||n<1||n>256)continue;
+      for(j=0;j<n;j++){sz=this.u32(s,i);if(sz<8||s.substr(i+4,4)!=="mdta")break;names.push(s.substr(i+8,sz-8));i+=sz;}
+      if(j<n||s.substr(i+4,4)!=="ilst")continue;
+      end=i+this.u32(s,i);i+=8;
+      while(i+8<=end&&i+8<=s.length){sz=this.u32(s,i);if(sz<8)break;idx=this.u32(s,i+4);d=i+8;
+        if(s.substr(d+4,4)==="data"&&idx>=1&&idx<=names.length)out[names[idx-1]]=s.substr(d+16,this.u32(s,d)-16);
+        i+=sz;}
+      return out;
+    }
+    return out;
+  },
+  /* Bytes to search: 64 KB at each end (Sony XML), plus the first 4 MB of an MP4/MOV moov box,
+     found by walking the top-level boxes (keys, ilst and sample descriptions live there). */
+  mediaMeta:function(path){
+    if(!path)return "";var f=new File(path),s="",len,pos=0,i,h,size;f.encoding="BINARY";if(!f.open("r"))return "";
+    try{len=f.length;s=f.read(65536);if(len>65536){f.seek(Math.max(65536,len-65536));s+=f.read(65536);}
+      for(i=0;i<64&&pos+8<=len;i++){f.seek(pos);h=f.read(16);if(h.length<8)break;size=this.u32(h,0);
+        if(size===1)size=this.u32(h,8)*4294967296+this.u32(h,12);else if(size===0)size=len-pos;
+        if(size<8)break;
+        if(h.substr(4,4)==="moov"){f.seek(pos);s+=f.read(Math.min(size,4194304));break;}
+        pos+=size;}
+    }finally{f.close();}
     return s;
   },
   /* Source file of the selected AE layer, else the topmost footage layer/clip under the playhead. */

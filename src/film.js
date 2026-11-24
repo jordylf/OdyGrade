@@ -1,4 +1,4 @@
-(function(root,factory){var api=factory();if(typeof module==="object"&&module.exports)module.exports=api;else root.OdyFilm=api;})(typeof window!=="undefined"?window:this,function(){
+(function(root,factory){var api=factory();if(typeof module==="object"&&module.exports&&typeof window==='undefined'&&typeof importScripts==='undefined')module.exports=api;else root.OdyFilm=api;})(typeof window!=="undefined"?window:this,function(){
 "use strict";
 // gauge 0 = classic per-pixel grain; 8/16/35/65 = gauge-sized grain. format: index into FORMATS (0 off).
 // The native core (native/src/core.cpp render) mirrors this file equation for equation.

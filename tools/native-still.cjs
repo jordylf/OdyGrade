@@ -7,6 +7,7 @@ function run(command,args,options={}){
  return cp.execFileSync(command,args,Object.assign({windowsHide:true,maxBuffer:256*1024*1024},options));
 }
 function renderStill(recipe,input,output){
+ if(recipe.settings.output!=='sdr')throw Error('HDR delivery is for the Adobe effect and LUT export; offline renders are SDR. Set delivery to SDR.');
  if(path.extname(output).toLowerCase()!=='.png')throw Error('Native still output must be .png to preserve 16-bit channels.');
  if(fs.existsSync(output))throw Error('Output already exists: '+output);
  const snapshot=N.compile(recipe),exe=native.executable();

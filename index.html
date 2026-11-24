@@ -49,8 +49,9 @@
 <footer class="action-bar" id="actionBar">
 <div class="status-line"><span class="dot"></span><span id="status" role="status" aria-live="polite">Start with your own frames or try the samples.</span></div>
 <div class="actions">
+<select id="output" aria-label="Delivery" title="Delivery for the effect and the LUT. HDR: use a Premiere HLG/PQ sequence; the preview here stays SDR."><option value="sdr">SDR</option><option value="hlg">HDR HLG</option><option value="pq">HDR PQ</option></select>
 <button class="primary" id="applyNative" disabled title="Apply the OdyGrade effect with this grade to the selected clips or layers">Apply to selected clips</button>
-<div class="lut-group"><select id="lutSize" aria-label="LUT precision" title="LUT precision"><option value="17">17³</option><option value="33" selected>33³</option><option value="65">65³</option></select><button id="exportLut" disabled title="LUT includes the source-profile conversion and color adjustments (sRGB out). Film effects need the native effect or still export.">Export .cube</button></div>
+<div class="lut-group"><select id="lutSize" aria-label="LUT precision" title="LUT precision"><option value="17">17³</option><option value="33" selected>33³</option><option value="65">65³</option></select><button id="exportLut" disabled title="LUT includes the source-profile conversion, color adjustments and the chosen delivery (SDR, HLG or PQ). Film effects need the native effect or still export.">Export .cube</button></div>
 <button id="exportNative" disabled title="Load in Effect Controls with OdyGrade → Reference grade">Save .odyn</button>
 <button id="exportPng" disabled>Save still</button>
 </div>

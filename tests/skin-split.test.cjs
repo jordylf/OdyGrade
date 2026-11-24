@@ -49,6 +49,47 @@ test('native skin split matches JS',{skip:!fs.existsSync(exe)},()=>{
   assert.ok(max<=1,'max diff '+max);
  }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
+// Face boxes: skin is measured on faces only, and the render leaves skin-coloured clothes alone.
+function strips(colors,w=64,h=48){
+ const data=new Uint8ClampedArray(w*h*4),n=colors.length;
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++){const c=colors[Math.floor(x*n/w)],v=((x*7+y*13)%11-5)*2;data.set([c[0]+v,c[1]+v,c[2]+v,255],(y*w+x)*4);}
+ return {width:w,height:h,data};
+}
+const face=[200,150,125],kimono=[205,172,95];
+const faceSource=strips([face,kimono,[60,140,70],[60,140,70]]),faceRef=strips([[215,140,100],[40,70,150],[40,70,150],[40,70,150]]);
+const faces={source:[[0,0,.25,1]],reference:[[0,0,.25,1]]};
+test('face boxes measure skin on the face only and mark the grade',()=>{
+ const byHue=E.fit(faceSource,faceRef,{separateSkin:true}),byFace=E.fit(faceSource,faceRef,{separateSkin:true,faces});
+ assert.equal(byHue.skin.face,undefined);assert.equal(byFace.skin.face,true);
+ const [fa]=ab(face.map(v=>v/255));
+ assert.ok(Math.abs(byFace.skin.source.a-fa)<Math.abs(byHue.skin.source.a-fa),'face palette is nearer the face colour');
+ const r=E.parse(E.serialize(byFace,{},{}));assert.equal(r.model.skin.face,true);assert.match(N.compile(r),/^ODYGRADE_NATIVE 8\n[\s\S]*\noutput sdr\n[\s\S]*\nhue 1( \S+){12}\nskin 2( \S+){8}\n/);
+ const bad=E.fit(faceSource,faceRef,{separateSkin:true,faces});bad.skin.face='yes';assert.throws(()=>E.serialize(bad,{},{}),/skin/i);
+});
+test('face-measured skin leaves a skin-coloured kimono on the frame-wide match',()=>{
+ const plain=E.fit(faceSource,faceRef,{}),byHue=E.fit(faceSource,faceRef,{separateSkin:true}),byFace=E.fit(faceSource,faceRef,{separateSkin:true,faces});
+ const px=kimono.map(v=>v/255),out=m=>ab(E.createTransform(m,{})(px)),base=out(plain);
+ const moved=m=>{const o=out(m);return Math.hypot(o[0]-base[0],o[1]-base[1]);};
+ assert.ok(moved(byFace)<moved(byHue)*.5,moved(byFace)+' vs '+moved(byHue));
+ const target=ab([215/255,140/255,100/255]),skin=m=>{const o=ab(E.createTransform(m,{})(face.map(v=>v/255)));return Math.hypot(o[0]-target[0],o[1]-target[1]);};
+ assert.ok(skin(byFace)<skin(plain),'the face still takes the reference skin');
+});
+test('no usable face falls back to skin picked by colour',()=>{
+ const m=E.fit(faceSource,faceRef,{separateSkin:true,faces:{source:[[.5,0,.25,1]],reference:[]}});  // box on the green strip
+ assert.ok(m.skin);assert.equal(m.skin.face,undefined);
+});
+test('native face-measured skin matches JS',{skip:!fs.existsSync(exe)},()=>{
+ const settings={strength:.8,preserveSkin:.3},model=E.fit(faceSource,faceRef,Object.assign({separateSkin:true,faces},settings));
+ const r=E.parse(E.serialize(model,settings,{})),dir=fs.mkdtempSync(path.join(os.tmpdir(),'odygrade-face-'));
+ try{
+  const file=path.join(dir,'g.odyn');fs.writeFileSync(file,N.compile(r));
+  const out=cp.spawnSync(exe,[file,String(faceSource.width),String(faceSource.height),'rgba8','rgba8','0'],{input:Buffer.from(faceSource.data),windowsHide:true,maxBuffer:1<<24});
+  assert.equal(out.status,0,out.stderr?.toString());
+  const expected=E.render(faceSource,model,settings).data;let max=0;
+  for(let i=0;i<expected.length;i++)max=Math.max(max,Math.abs(out.stdout[i]-expected[i]));
+  assert.ok(max<=1,'max diff '+max);
+ }finally{fs.rmSync(dir,{recursive:true,force:true});}
+});
 // Per-hue match: each hue band moves toward the reference's version of that hue.
 test('hue bands pull greens toward the reference greens and leave missing bands alone',()=>{
  const src=image([150,190,60],[120,120,120]),ref=image([40,170,140],[125,125,125]);  // yellow-green vs teal-green

@@ -22,6 +22,7 @@ struct Model {
     bool has_hue{};             // snapshot v7: per-hue-band [shift rad, chroma gain]
     std::array<std::array<double,2>,6> hue{};
     bool has_skin{};            // snapshot v6: separate skin palette match
+    bool skin_face{};           // v7 skin flag 2: palette measured on detected faces
     Zone skin_source{}, skin_reference{};
 };
 struct Settings {
@@ -31,6 +32,7 @@ struct Settings {
     std::string input_profile{"srgb"};
     std::string stock{"none"};  // film stock emulation key (src/engine.js STOCKS)
     double stock_amount{1};
+    std::string output{"sdr"};  // snapshot v8: sdr, hlg or pq (Rec.2100 delivery)
 };
 struct Film {
     double grain{}, bloom{}, halation{}, vignette{}, bleach{}, ratio{};

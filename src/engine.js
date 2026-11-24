@@ -2,13 +2,13 @@
  * No per-frame re-analysis: a fitted match is immutable until the user refits it.
  * UMD deliberately supports CEP 11's Chromium and dependency-free Node tests. */
 (function(root, factory) {
-  if (typeof module === "object" && module.exports) module.exports = factory(require('./color-management.js'));
+  if (typeof module === "object" && module.exports&&typeof window==='undefined'&&typeof importScripts==='undefined') module.exports = factory(require('./color-management.js'));
   else root.OdyColor = factory(root.OdyInput);
 })(typeof window !== "undefined" ? window : this, function(CM) {
   "use strict";
   var VERSION = 2;
   var DEFAULTS = {strength:1, exposure:0, temperature:0, tint:0, contrast:1,
-    saturation:1, preserveSkin:0.65, fade:0, shoulder:0, look:"neutral", inputProfile:"srgb", stock:"none", stockAmount:1};
+    saturation:1, preserveSkin:0.65, fade:0, shoulder:0, look:"neutral", inputProfile:"srgb", stock:"none", stockAmount:1, output:"sdr"};
   var LOOKS = {
     neutral:{name:"Neutral",shadow:[0,0],highlight:[0,0],sat:1,contrast:1},
     amber:{name:"Amber Hour",shadow:[-0.006,-0.009],highlight:[0.012,0.027],sat:0.95,contrast:1.06},
@@ -84,6 +84,7 @@
     if(!Object.prototype.hasOwnProperty.call(LOOKS,o.look)) throw Error("Unknown look");
     if(!Object.prototype.hasOwnProperty.call(STOCKS,o.stock)) throw Error("Unknown film stock");
     CM.profile(o.inputProfile);
+    if(CM.OUTPUTS.indexOf(o.output)<0) throw Error("Unknown output");
     return o;
   }
   function correct(rgb,o){
@@ -97,8 +98,9 @@
       image.width<1||image.height<1||image.width*image.height>40000000||
       !image.data||image.data.length!==image.width*image.height*4) throw Error("Invalid RGBA image");
   }
-  function samplesFor(image,o,budget){
-    validateImage(image);
+  // faces: [[x,y,w,h],...] as fractions of the image; samples inside one are flagged .face.
+  function samplesFor(image,o,budget,faces){
+    validateImage(image);faces=Array.isArray(faces)?faces:[];
     var normalize=CM.create(o?o.inputProfile:'srgb');
     var samples=[], step=Math.max(1,Math.ceil(image.width*image.height/budget));
     for(var i=0;i<image.width*image.height;i+=step){
@@ -109,7 +111,10 @@
       // Exclude matte/below-black samples in the normalized domain: log black
       // lives above code zero and must not skew the source/reference statistics.
       if(Math.max(rgb[0],rgb[1],rgb[2])<4/255)continue;
-      samples.push(toLab(o?correct(rgb,o):rgb));
+      var lab=toLab(o?correct(rgb,o):rgb);
+      if(faces.length){var x=(i%image.width+.5)/image.width,y=(Math.floor(i/image.width)+.5)/image.height;
+        lab.face=faces.some(function(f){return x>=f[0]&&x<=f[0]+f[2]&&y>=f[1]&&y<=f[1]+f[3];});}
+      samples.push(lab);
     }
     if(samples.length<16) throw Error("Image needs at least 16 nontransparent, nonblack pixels");
     return samples;
@@ -136,15 +141,21 @@
     return {quantiles:qs,zones:zones.map(function(z){return finish(z.n>=8?z:all);}),chroma:cq,count:samples.length,skin:skinStats(samples),samples:samples};
   }
   // Skin palette (OKLab a/b mean and spread), weighted by the same hue heuristic as skin
-  // protection. Null when the image holds too little skin to measure (< MIN_SKIN weight).
-  var MIN_SKIN=150;
+  // protection. With detected faces only face pixels count (face:true), so a skin-coloured
+  // kimono or wall cannot pull the palette. Null when too little skin is found (< MIN_SKIN weight).
+  var MIN_SKIN=150,MIN_FACE_SKIN=40;
   function skinStats(samples){
-    var n=0,a=0,b=0,aa=0,bb=0;
-    samples.forEach(function(c){var w=skinWeight(c);if(w<=0)return;n+=w;a+=w*c[1];b+=w*c[2];aa+=w*c[1]*c[1];bb+=w*c[2]*c[2];});
-    if(n<MIN_SKIN)return null;
-    a/=n;b/=n;return {a:a,b:b,sa:Math.sqrt(Math.max(0,aa/n-a*a)),sb:Math.sqrt(Math.max(0,bb/n-b*b))};
+    function stats(use,min){
+      var n=0,a=0,b=0,aa=0,bb=0;
+      samples.forEach(function(c){if(!use(c))return;var w=skinWeight(c);if(w<=0)return;n+=w;a+=w*c[1];b+=w*c[2];aa+=w*c[1]*c[1];bb+=w*c[2]*c[2];});
+      if(n<min)return null;
+      a/=n;b/=n;return {a:a,b:b,sa:Math.sqrt(Math.max(0,aa/n-a*a)),sb:Math.sqrt(Math.max(0,bb/n-b*b))};
+    }
+    var face=samples.some(function(c){return c.face;})&&stats(function(c){return c.face;},MIN_FACE_SKIN);
+    if(face){face.face=true;return face;}
+    return stats(function(){return true;},MIN_SKIN);
   }
-  function distribution(image,o){return summarize(samplesFor(image,o,60000));}
+  function distribution(image,o,faces){return summarize(samplesFor(image,o,60000,faces));}
   function fitDistributions(a,b,o,separateSkin){
     var skinA=a.skin,skinB=b.skin,samplesA=a.samples,samplesB=b.samples,warnings=[];
     a=Object.assign({},a);b=Object.assign({},b);delete a.skin;delete b.skin;delete a.samples;delete b.samples;
@@ -157,13 +168,18 @@
     // Per-hue residual: measured after the frame-wide match, so it only corrects what that missed.
     var stage=createTransform(model,Object.assign({},o,{strength:1,preserveSkin:0}),true);
     model.hue=hueMatch(samplesA.map(function(c){return stage(c);}),samplesB);
-    if(separateSkin&&skinA&&skinB)model.skin={source:skinA,reference:skinB};
+    if(separateSkin&&skinA&&skinB){
+      var palette=function(z){return {a:z.a,b:z.b,sa:z.sa,sb:z.sb};};
+      model.skin={source:palette(skinA),reference:palette(skinB)};
+      if(skinA.face)model.skin.face=true;  // render only touches colours near the measured faces
+    }
     return model;
   }
   // options.separateSkin: match skin tones to the reference's skin and the rest to the rest.
+  // options.faces {source,reference}: face boxes (see samplesFor) that measure the skin palettes.
   function fit(source,reference,options){
-    var o=settings(options);
-    return fitDistributions(distribution(source,o),distribution(reference),o,!!(options&&options.separateSkin));
+    var o=settings(options),faces=options&&options.faces||{};
+    return fitDistributions(distribution(source,o,faces.source),distribution(reference,undefined,faces.reference),o,!!(options&&options.separateSkin));
   }
   // Equal candidate-pixel budgets per sampled frame; alpha/matte rejection still
   // applies. This pools one shot once, not a model that follows every frame.
@@ -179,7 +195,7 @@
   }
   function fitFrames(frames,reference,options){
     var o=settings(options),shot=shotStatistics(frames,o);
-    var model=fitDistributions(shot.distribution,distribution(reference),o,!!(options&&options.separateSkin));
+    var model=fitDistributions(shot.distribution,distribution(reference,undefined,(options&&options.faces||{}).reference),o,!!(options&&options.separateSkin));
     if(shot.spread>.25)
       model.warnings.push("Sampled frame brightness varies substantially. Check the shot range for cuts or lighting changes.");
     return model;
@@ -199,7 +215,8 @@
     if(model.hue!==undefined&&(!Array.isArray(model.hue)||model.hue.length!==HUES.length||!model.hue.every(function(h){
       return Array.isArray(h)&&h.length===2&&Number.isFinite(h[0])&&Number.isFinite(h[1])&&Math.abs(h[0])<=MAX_HUE_SHIFT+1e-9&&h[1]>=0.7-1e-9&&h[1]<=1.4+1e-9;})))throw Error("Invalid hue match");
     if(model.skin!==undefined&&(!model.skin||[model.skin.source,model.skin.reference].some(function(z){
-      return !z||["a","b","sa","sb"].some(function(k){return !Number.isFinite(z[k])||Math.abs(z[k])>4;})||z.sa<0||z.sb<0;})))throw Error("Invalid skin palette");
+      return !z||["a","b","sa","sb"].some(function(k){return !Number.isFinite(z[k])||Math.abs(z[k])>4;})||z.sa<0||z.sb<0;})||
+      (model.skin.face!==undefined&&model.skin.face!==true)))throw Error("Invalid skin palette");
     return model;
   }
   function toneMap(x,a,b){
@@ -225,6 +242,11 @@
     if(x<mid){t=smooth(0,Math.max(0.01,mid),x);return {a:mix(z[0].a,z[1].a,t),b:mix(z[0].b,z[1].b,t),sa:mix(z[0].sa,z[1].sa,t),sb:mix(z[0].sb,z[1].sb,t)};}
     t=smooth(mid,Math.max(mid+0.01,1),x);
     return {a:mix(z[1].a,z[2].a,t),b:mix(z[1].b,z[2].b,t),sa:mix(z[1].sa,z[2].sa,t),sb:mix(z[1].sb,z[2].sb,t)};
+  }
+  // Face-measured skin: how close a colour is to the source faces' palette (2 std devs + margin).
+  // Mirrored in core.cpp.
+  function faceWeight(lab,s){
+    var da=(lab[1]-s.a)/(2*s.sa+0.012),db=(lab[2]-s.b)/(2*s.sb+0.012);return Math.exp(-0.5*(da*da+db*db));
   }
   function skinWeight(lab){
     var hue=Math.atan2(lab[2],lab[1]),chroma=Math.hypot(lab[1],lab[2]);
@@ -280,7 +302,7 @@
     if(model&&(model.version===1?'srgb':model.inputProfile)!==o.inputProfile)throw Error("Input profile changed: refit the match");
     if(model && ["exposure","temperature","tint"].some(function(k){return Math.abs(model.correction[k]-o[k])>0.000001;}))
       throw Error("Correction changed: refit the match before exporting");
-    var look=LOOKS[o.look],film=STOCKS[o.stock],normalize=CM.create(o.inputProfile);
+    var look=LOOKS[o.look],film=STOCKS[o.stock],normalize=CM.create(o.inputProfile),expand=CM.PROFILES[o.inputProfile].scene;
     var refKnots=model?boundedKnots(model.source.quantiles,model.reference.quantiles):null;
     if(matchStage)return function(base){
       var c=base.slice(),source=model.source,ref=model.reference;
@@ -304,7 +326,7 @@
         if(model.hue)c=applyHue(c,model.hue,o.strength*protect);
         if(model.skin){
           // Skin pixels take the reference skin palette instead of the frame-wide match.
-          var w=skinWeight(base),ss=model.skin.source,rs=model.skin.reference;
+          var ss=model.skin.source,rs=model.skin.reference,w=skinWeight(base)*(model.skin.face?faceWeight(base,ss):1);
           if(w>0){
             var sar=clamp((rs.sa+0.015)/(ss.sa+0.015),0.5,2),sbr=clamp((rs.sb+0.015)/(ss.sb+0.015),0.5,2);
             c[1]=mix(c[1],mix(base[1],clamp((base[1]-ss.a)*sar+rs.a,-0.3,0.3),o.strength),w);
@@ -319,12 +341,14 @@
       c=stock(c,film,o.stockAmount);
       c[0]=mix(c[0],o.fade+(1-o.fade)*c[0],1);
       if(o.shoulder>0&&c[0]>0.65)c[0]=mix(c[0],0.65+0.35*(1-Math.exp(-(c[0]-0.65)/0.35)),o.shoulder);
-      return fromLab(c).map(function(x){return clamp(x);});
+      var out=fromLab(c).map(function(x){return clamp(x);});
+      return o.output==="sdr"?out:CM.encodeOutput(out,o.output,expand);
     };
   }
   function render(image,model,options){
     validateImage(image);
-    var fn=createTransform(model,options),out=new Uint8ClampedArray(image.data.length);
+    // Previews and stills are SDR images: HDR output applies to the effect and the LUT only.
+    var fn=createTransform(model,Object.assign({},settings(options),{output:"sdr"})),out=new Uint8ClampedArray(image.data.length);
     for(var i=0;i<out.length;i+=4){
       var c=fn([image.data[i]/255,image.data[i+1]/255,image.data[i+2]/255]);
       out[i]=Math.round(c[0]*255);out[i+1]=Math.round(c[1]*255);out[i+2]=Math.round(c[2]*255);out[i+3]=image.data[i+3];
@@ -346,7 +370,7 @@
   }
   function cube(model,options,size){
     size=size||33;if([17,33,65].indexOf(size)<0)throw Error("LUT size must be 17, 33 or 65");
-    var o=settings(options),fn=createTransform(model,o),lines=['TITLE "OdyGrade"',"# input profile: "+o.inputProfile+"; output: sRGB SDR",
+    var o=settings(options),fn=createTransform(model,o),lines=['TITLE "OdyGrade"',"# input profile: "+o.inputProfile+"; output: "+({sdr:"sRGB SDR",hlg:"Rec.2100 HLG",pq:"Rec.2100 PQ"})[o.output],
       "# Color transform only. Spatial film effects are not included.","LUT_3D_SIZE "+size,"DOMAIN_MIN 0 0 0","DOMAIN_MAX 1 1 1"];
     // .cube order: red changes fastest.
     for(var b=0;b<size;b++)for(var g=0;g<size;g++)for(var r=0;r<size;r++)
@@ -356,9 +380,10 @@
   function serialize(model,options,film){
     if(model)validateModel(model);
     var o=settings(options);createTransform(model,o);
-    return JSON.stringify({format:"odygrade",version:VERSION,inputSpace:o.inputProfile,outputSpace:"srgb",model:model||null,
+    return JSON.stringify({format:"odygrade",version:VERSION,inputSpace:o.inputProfile,outputSpace:outputSpace(o.output),model:model||null,
       settings:o,film:film||{}},null,2);
   }
+  function outputSpace(output){return output==="sdr"?"srgb":"rec2100-"+output;}
   function parse(text){
     var x=JSON.parse(text);
     if(!x||x.format!=="odygrade"||[1,VERSION].indexOf(x.version)<0)throw Error("Unsupported OdyGrade recipe");
@@ -367,8 +392,8 @@
       x.version=VERSION;x.outputSpace="srgb";
     }
     CM.profile(x.inputSpace);
-    if(x.outputSpace!=="srgb")throw Error("Unsupported output space");
     if(x.model)validateModel(x.model);x.settings=settings(x.settings);
+    if(x.outputSpace!==outputSpace(x.settings.output))throw Error("Unsupported output space");
     if(x.inputSpace!==x.settings.inputProfile)throw Error("Recipe input profile mismatch");
     createTransform(x.model,x.settings);
     return x;

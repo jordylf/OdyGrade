@@ -66,6 +66,32 @@ Color apply_stock(Color c,const Stock& k,double amount) {
     const auto t=smooth(.15,.85,l);a+=mix(k.shadow[0],k.highlight[0],t);b+=mix(k.shadow[1],k.highlight[1],t);
     return {mix(c[0],l,amount),mix(c[1],a,amount),mix(c[2],b,amount)};
 }
+// Mirrors color-management.js pq/pqOETF/hlgOETF/encodeOutput (Rec.2100 delivery).
+constexpr double kPqM1=2610.0/16384,kPqM2=2523.0/4096*128,kPqC1=3424.0/4096,kPqC2=2413.0/4096*32,kPqC3=2392.0/4096*32,kRefWhite=203;
+constexpr double kHlgA=.17883277,kHlgB=1-4*kHlgA;
+double pq_eotf(double x){const auto p=std::pow(std::max(0.0,x),1/kPqM2);return std::pow(std::max(0.0,p-kPqC1)/(kPqC2-kPqC3*p),1/kPqM1);}
+double pq_oetf(double y){const auto p=std::pow(std::max(0.0,y),kPqM1);return std::pow((kPqC1+kPqC2*p)/(1+kPqC3*p),kPqM2);}
+double hlg_scene(double v){const double c=.5-kHlgA*std::log(4*kHlgA);return v<=.5?v*std::abs(v)/3:(std::exp((v-c)/kHlgA)+kHlgB)/12;}
+double hlg_oetf(double e){const double c=.5-kHlgA*std::log(4*kHlgA);return e<=1.0/12?std::sqrt(3*std::max(0.0,e)):kHlgA*std::log(12*e-kHlgB)+c;}
+enum class Output { Sdr, Hlg, Pq };
+Output output_for(const std::string& key) {
+    if(key=="sdr")return Output::Sdr;if(key=="hlg")return Output::Hlg;if(key=="pq")return Output::Pq;
+    throw std::invalid_argument("Unsupported output");
+}
+Color encode_output(Color c,Output output,bool expand) {
+    if(output==Output::Sdr)return c;
+    for(auto& v:c)v=decode(clamp(v));
+    const auto white=hlg_scene(.75),cap=output==Output::Hlg?1/white:1000/kRefWhite;
+    const auto peak=std::max({c[0],c[1],c[2]});
+    if(expand&&peak>.8){const auto k=(peak<1?std::min(cap,.8-.2*std::log(1-(peak-.8)/.2)):cap)/peak;for(auto& v:c)v*=k;}
+    constexpr double m[9]={.627403896,.329283039,.043313065,.069097289,.919540395,.011362316,.016391439,.088013308,.895595253};
+    Color out{};
+    for(int r=0;r<3;++r) {
+        const auto x=std::max(0.0,m[r*3]*c[0]+m[r*3+1]*c[1]+m[r*3+2]*c[2]);
+        out[r]=clamp(output==Output::Hlg?hlg_oetf(std::min(1.0,x*white)):pq_oetf(x*kRefWhite/10000));
+    }
+    return out;
+}
 const InputProfile& profile_for(const std::string& key) {
     for(const auto& profile:kInputProfiles)if(key==profile.key)return profile;
     throw std::invalid_argument("Unsupported input profile");
@@ -90,6 +116,7 @@ double decode_input(double x,int transfer) {
         constexpr double a=.17883277,b=1-4*a;const double c=.5-a*std::log(4*a);
         const auto hlg=[&](double v){return v<=.5?v*std::abs(v)/3:(std::exp((v-c)/a)+b)/12;};
         return hlg(x)/hlg(.75);}
+    if(transfer==11)return pq_eotf(x)*10000/kRefWhite;  // PQ, 203 cd/m2 = 1.0
     throw std::invalid_argument("Unsupported transfer function");
 }
 Color normalize_input(Color rgb,const InputProfile& profile) {
@@ -169,6 +196,10 @@ double skin_weight(Color c) {
     return smooth(.2,.45,c[0])*(1-smooth(.85,.98,c[0]))*
         std::exp(-std::pow((hue-.8)/.45,2))*smooth(.015,.06,chroma);
 }
+// Mirrors engine.js faceWeight: closeness to the face-measured source skin palette.
+double face_weight(Color c,const Zone& s) {
+    const auto da=(c[1]-s.a)/(2*s.sa+.012),db=(c[2]-s.b)/(2*s.sb+.012);return std::exp(-.5*(da*da+db*db));
+}
 // Mirrors engine.js applyHue: per-hue-band rotation and chroma gain toward the reference.
 constexpr double kHues[6]={.3,1.347,2.394,-2.842,-1.795,-.747};
 Color apply_hue(Color c,const std::array<std::array<double,2>,6>& bands,double amount) {
@@ -203,7 +234,8 @@ Color apply_color(Color rgb,const Recipe& r,const Prepared& p) {
         if(r.model.has_hue)c=apply_hue(c,r.model.hue,s.strength*protect);
         // Mirrors engine.js: skin pixels take the reference skin palette.
         if(r.model.has_skin) {
-            const auto w=skin_weight(base);const auto& ss=r.model.skin_source;const auto& rs=r.model.skin_reference;
+            const auto& ss=r.model.skin_source;const auto& rs=r.model.skin_reference;
+            const auto w=skin_weight(base)*(r.model.skin_face?face_weight(base,ss):1);
             if(w>0) {
                 const auto sar=clamp((rs.sa+.015)/(ss.sa+.015),.5,2),sbr=clamp((rs.sb+.015)/(ss.sb+.015),.5,2);
                 c[1]=mix(c[1],mix(base[1],clamp((base[1]-ss.a)*sar+rs.a,-.3,.3),s.strength),w);
@@ -383,7 +415,7 @@ void validate(const Recipe& r) {
     check_range(s.contrast,.5,1.8,"Invalid contrast");check_range(s.saturation,0,2,"Invalid saturation");
     check_range(s.preserve_skin,0,1,"Invalid skin control");check_range(s.fade,0,.2,"Invalid fade");
     check_range(s.shoulder,0,1,"Invalid shoulder");(void)look_for(s.look);(void)profile_for(s.input_profile);
-    (void)stock_for(s.stock);check_range(s.stock_amount,0,1,"Invalid stock amount");
+    (void)stock_for(s.stock);check_range(s.stock_amount,0,1,"Invalid stock amount");(void)output_for(s.output);
     if(r.model.enabled) {
         check_correction(r.model.correction);check_distribution(r.model.source);check_distribution(r.model.reference);
         if(r.model.has_hue)for(const auto& h:r.model.hue)
@@ -417,7 +449,7 @@ std::optional<Recipe> trim_recipe(const Recipe& r) {
 Color transform(Color color,const Recipe& recipe) {
     validate(recipe);for(auto v:color)if(!std::isfinite(v))throw std::invalid_argument("Nonfinite input color");
     const auto t=trim_recipe(recipe);const auto c=apply_color(color,recipe,prepare(recipe));
-    return t?apply_color(c,*t,prepare(*t)):c;
+    return encode_output(t?apply_color(c,*t,prepare(*t)):c,output_for(recipe.settings.output),profile_for(recipe.settings.input_profile).scene);
 }
 void set_thread_limit(int threads){thread_limit=std::max(0,threads);}
 void render(const ConstFrame& input,const Frame& output,const Recipe& recipe,std::uint64_t frame_index,double pixel_aspect) {
@@ -428,6 +460,7 @@ void render(const ConstFrame& input,const Frame& output,const Recipe& recipe,std
     if(input.width!=output.width||input.height!=output.height)throw std::invalid_argument("Frame size mismatch");
     const auto w=input.width,h=input.height;const auto in_layout=layout(input.format),out_layout=layout(output.format);
     const auto prepared=prepare(recipe);const auto& film=recipe.film;
+    const auto out_kind=output_for(recipe.settings.output);const auto expand=prepared.profile.scene;
     const auto trim=trim_recipe(recipe);const auto trimmed=prepare(trim?*trim:recipe);
     const auto graded=[&](int x,int y)->std::array<double,4>{
         const auto p=static_cast<const std::uint8_t*>(input.data)+y*input.row_bytes+x*pixel_bytes(input.format);
@@ -474,6 +507,7 @@ void render(const ConstFrame& input,const Frame& output,const Recipe& recipe,std
         const auto matte=film.ratio&&(display_width/h>film.ratio?
             std::abs(dx)*display_width>h*film.ratio/2:std::abs(dy)*h>display_width/film.ratio/2);
         auto p=static_cast<std::uint8_t*>(output.data)+y*output.row_bytes+x*pixel_bytes(output.format);
+        Color finished{};
         for(int k=0;k<3;++k) {
             const auto desat=c[k]*255*(1-film.bleach*.65)+l*film.bleach*.65;
             auto v=desat+(desat-127.5)*film.bleach*.22;
@@ -482,7 +516,11 @@ void render(const ConstFrame& input,const Frame& output,const Recipe& recipe,std
             if(mask)v+=mask>0?(255-v)*mask:v*mask;
             v=matte?0:clamp(v/255);
             if(hole)v+=(235.0/255-v)*hole;
-            if(output.alpha==AlphaMode::Premultiplied)v*=c[3];
+            finished[k]=v;
+        }
+        finished=encode_output(finished,out_kind,expand);  // HDR delivery after film, before premultiply
+        for(int k=0;k<3;++k) {
+            auto v=finished[k];if(output.alpha==AlphaMode::Premultiplied)v*=c[3];
             write_scalar(p+out_layout.channels[k]*out_layout.scalar_bytes,out_layout,v);
         }
         write_scalar(p+out_layout.channels[3]*out_layout.scalar_bytes,out_layout,c[3]);

@@ -23,13 +23,14 @@ Recipe read_recipe(const std::string& text) {
     if(text.size()>65536)throw std::invalid_argument("Native recipe exceeds 64 KB");
     std::istringstream in(text);in.imbue(std::locale::classic());
     token(in,"ODYGRADE_NATIVE");const auto version=number(in);
-    if(version!=1&&version!=2&&version!=3&&version!=4&&version!=5&&version!=6&&version!=7)throw std::invalid_argument("Unsupported native recipe version");
+    if(version!=1&&version!=2&&version!=3&&version!=4&&version!=5&&version!=6&&version!=7&&version!=8)throw std::invalid_argument("Unsupported native recipe version");
     Recipe r;auto& s=r.settings;auto& f=r.film;
     token(in,"settings");s.strength=number(in);s.exposure=number(in);s.temperature=number(in);s.tint=number(in);
     s.contrast=number(in);s.saturation=number(in);s.preserve_skin=number(in);s.fade=number(in);s.shoulder=number(in);
     token(in,"look");if(!(in>>s.look))throw std::invalid_argument("Missing look");
     if(version>=2){token(in,"profile");if(!(in>>s.input_profile))throw std::invalid_argument("Missing input profile");}
     if(version>=5){token(in,"stock");if(!(in>>s.stock))throw std::invalid_argument("Missing film stock");s.stock_amount=number(in);}
+    if(version>=8){token(in,"output");if(!(in>>s.output))throw std::invalid_argument("Missing output");}
     token(in,"model");const auto enabled=number(in);if(enabled!=0&&enabled!=1)throw std::invalid_argument("Invalid model flag");
     r.model.enabled=enabled==1;
     if(r.model.enabled) {
@@ -37,9 +38,12 @@ Recipe read_recipe(const std::string& text) {
         if(version>=2){token(in,"model-profile");if(!(in>>r.model.input_profile))throw std::invalid_argument("Missing model profile");}
         token(in,"source");r.model.source=distribution(in,version);
         token(in,"reference");r.model.reference=distribution(in,version);
-        if(version>=7){token(in,"hue");r.model.has_hue=true;for(auto& h:r.model.hue){h[0]=number(in);h[1]=number(in);}}
+        if(version>=7){token(in,"hue");
+            if(version>=8){const auto flag=number(in);if(flag!=0&&flag!=1)throw std::invalid_argument("Invalid hue flag");r.model.has_hue=flag==1;}
+            else r.model.has_hue=true;
+            if(r.model.has_hue)for(auto& h:r.model.hue){h[0]=number(in);h[1]=number(in);}}
         if(version>=6){token(in,"skin");
-            if(version>=7){const auto flag=number(in);if(flag!=0&&flag!=1)throw std::invalid_argument("Invalid skin flag");r.model.has_skin=flag==1;}
+            if(version>=7){const auto flag=number(in);if(flag!=0&&flag!=1&&flag!=2)throw std::invalid_argument("Invalid skin flag");r.model.has_skin=flag>0;r.model.skin_face=flag==2;}
             else r.model.has_skin=true;
             if(r.model.has_skin)for(auto* z:{&r.model.skin_source,&r.model.skin_reference}){z->a=number(in);z->b=number(in);z->sa=number(in);z->sb=number(in);}}
     }
