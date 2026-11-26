@@ -1,4 +1,4 @@
-OdyGrade for After Effects / Premiere Pro 2024 (Windows x64)
+OdyGrade for After Effects / Premiere Pro 2024 and newer (Windows x64; tested on 2024)
 
 Install
   1. Close After Effects and Premiere Pro.

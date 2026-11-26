@@ -2,7 +2,7 @@
 
 <p align="center"><a href="https://github.com/jordylf/OdyGrade/releases/latest"><strong>Download for Windows ↗</strong></a> &nbsp; · &nbsp; <a href="#how-it-works">How it works</a> &nbsp; · &nbsp; <a href="#film-texture-in-one-panel">Film texture</a> &nbsp; · &nbsp; <a href="#from-s-log3-to-the-look">S-Log3 demo</a> &nbsp; · &nbsp; <a href="#install-in-three-steps">Install</a> &nbsp; · &nbsp; <a href="#questions">FAQ</a></p>
 
-<p align="center"><sub>REFERENCE GRADING · AFTER EFFECTS & PREMIERE PRO 2024 · WINDOWS</sub></p>
+<p align="center"><sub>REFERENCE GRADING · AFTER EFFECTS & PREMIERE PRO 2024+ · WINDOWS</sub></p>
 
 ## Cinematic grades from one reference still.
 
@@ -104,6 +104,7 @@ Move match strength, exposure, temperature, tint, contrast, saturation and skin 
 | --- | --- | --- |
 | Adobe After Effects 2024 | 24.6 (tested) · 8, 16, 32 bpc · Multi-Frame Rendering | Windows 10/11 x64 |
 | Adobe Premiere Pro 2024 | 24.6 (tested) · export through Media Encoder | Windows 10/11 x64 |
+| After Effects / Premiere Pro 2025 and newer | Should work, not yet tested. Premiere 2025 changed colour management, so check HDR delivery there. Please report problems. | Windows 10/11 x64 |
 
 **Speed** (1080×1920, full grade with film stock, grain, bloom, halation, weave and dust): After Effects renders 120 frames in **54.4 s** (61.3 s with trims). Premiere exports at **0.26 s per frame**.
 
