@@ -177,10 +177,14 @@ Zone zone_color(double x,const Distribution& d,double mid) {
 }
 using Knots=std::array<double,9>;
 // Mirrors engine.js boundedKnots: reference knots with each segment's expansion capped at
-// 2x the source segment, so crowded highlights (clipped sky) are not stretched into blotches.
+// 2x the source segment, so crowded highlights (clipped sky) are not stretched into blotches;
+// reference p0/p5 below the source's move only part of the way down (SHADOW_TOE .5/.75), kept increasing.
 Knots bounded_knots(const Distribution& a,const Distribution& b) {
     Knots out{};out[0]=b.quantiles[0];
     for(std::size_t i=1;i<out.size();++i)out[i]=out[i-1]+std::min(b.quantiles[i]-b.quantiles[i-1],2*(a.quantiles[i]-a.quantiles[i-1]));
+    constexpr double toe[2]={.5,.75};
+    for(std::size_t k=0;k<2;++k)if(out[k]<a.quantiles[k])out[k]=mix(a.quantiles[k],out[k],toe[k]);
+    for(std::size_t i=1;i<out.size();++i)out[i]=std::max(out[i],out[i-1]);
     return out;
 }
 double tone_map(double x,const Distribution& a,const Knots& b) {
@@ -232,6 +236,8 @@ Color apply_color(Color rgb,const Recipe& r,const Prepared& p) {
         c[2]=mix(c[2],clamp((c[2]-sc.b)*br+rc.b,-.3,.3),s.strength*protect);
         c=chroma_tail(c,base,source,ref,s.strength*protect);
         if(r.model.has_hue)c=apply_hue(c,r.model.hue,s.strength*protect);
+        // Mirrors engine.js DARK_CHROMA: chroma follows the match's darkening.
+        if(base[0]>.02&&c[0]<base[0]){const auto dim=std::pow(std::max(0.0,c[0])/base[0],.7);c[1]=rc.a+(c[1]-rc.a)*dim;c[2]=rc.b+(c[2]-rc.b)*dim;}
         // Mirrors engine.js: skin pixels take the reference skin palette.
         if(r.model.has_skin) {
             const auto& ss=r.model.skin_source;const auto& rs=r.model.skin_reference;

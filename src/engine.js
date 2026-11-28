@@ -231,10 +231,15 @@
   // Reference knots with each segment's expansion capped at MAX_TONE_SLOPE x the source
   // segment: a crowded source range (clipped sky, the p95..max outlier segment) must not be
   // stretched into visible blotches. Compression is left alone. Mirrored in core.cpp.
-  var MAX_TONE_SLOPE=2;
+  // Shadow toe: where the reference's p0/p5 lie below the source's, those knots move only part
+  // of the way down (SHADOW_TOE), so dark areas keep their shape instead of being crushed; the
+  // knots stay increasing. DARK_CHROMA: see createTransform. Both mirrored in core.cpp.
+  var MAX_TONE_SLOPE=2,SHADOW_TOE=[0.5,0.75],DARK_CHROMA=0.7;
   function boundedKnots(a,b){
     var out=[b[0]];
     for(var i=1;i<b.length;i++)out.push(out[i-1]+Math.min(b[i]-b[i-1],MAX_TONE_SLOPE*(a[i]-a[i-1])));
+    SHADOW_TOE.forEach(function(w,k){if(out[k]<a[k])out[k]=mix(a[k],out[k],w);});
+    for(i=1;i<out.length;i++)out[i]=Math.max(out[i],out[i-1]);
     return out;
   }
   function zoneColor(x,z,mid){
@@ -324,6 +329,9 @@
         c[2]=mix(c[2],clamp((c[2]-sc.b)*br+rc.b,-0.3,0.3),o.strength*protect);
         c=chromaTail(c,base,source.chroma,ref.chroma,o.strength*protect);
         if(model.hue)c=applyHue(c,model.hue,o.strength*protect);
+        // Chroma follows the match's darkening, so darkened colours do not turn dense; it shrinks
+        // around the reference palette (rc) so the reference's colour cast is kept.
+        if(base[0]>0.02&&c[0]<base[0]){var dim=Math.pow(Math.max(0,c[0])/base[0],DARK_CHROMA);c[1]=rc.a+(c[1]-rc.a)*dim;c[2]=rc.b+(c[2]-rc.b)*dim;}
         if(model.skin){
           // Skin pixels take the reference skin palette instead of the frame-wide match.
           var ss=model.skin.source,rs=model.skin.reference,w=skinWeight(base)*(model.skin.face?faceWeight(base,ss):1);
